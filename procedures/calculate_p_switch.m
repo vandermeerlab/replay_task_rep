@@ -1,4 +1,9 @@
-function [p_switch] = calculate_p_switch(SWR_data, SWR_times)
+function [p_switch, SWR_t_diffs] = calculate_p_switch(cfg_in, SWR_data, SWR_times)
+
+cfg_def = [];
+cfg_def.bin_egdes = -1.2:0.2:1.8;
+
+cfg = ProcessConfig(cfg_def,cfg_in);
 
 SWR_t_diffs = [];
 SWR_t_switch = [];
@@ -24,11 +29,9 @@ for i = 1:length(SWR_times)-1
     %     end
 end
 
-bin_size = 0.2;
-t_diffs_bin = -1.2:bin_size:1.8;
-p_switch = zeros(1, length(t_diffs_bin)-1);
+p_switch = zeros(1, length(cfg.bin_egdes)-1);
 
-t_diffs_bin_indices = discretize(log10(SWR_t_diffs), t_diffs_bin);
+t_diffs_bin_indices = discretize(log10(SWR_t_diffs), cfg.bin_egdes);
 for bin_i = 1:max(t_diffs_bin_indices)
     p_switch_bin = SWR_t_switch(t_diffs_bin_indices == bin_i);
     p_switch(bin_i) = sum(p_switch_bin) / length(p_switch_bin);
