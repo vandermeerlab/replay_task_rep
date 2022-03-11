@@ -1,4 +1,4 @@
-function [p_switch, SWR_t_diffs] = calculate_p_switch(cfg_in, SWR_data, SWR_times)
+function [p_switch, SWR_t_diffs] = calculate_p_switch_by_time(cfg_in, SWR_data, SWR_times)
 
 cfg_def = [];
 cfg_def.bin_egdes = -1.2:0.2:1.8;
