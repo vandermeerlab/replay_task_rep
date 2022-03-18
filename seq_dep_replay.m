@@ -166,11 +166,11 @@ p_switch = cell(1, length(out));
 p_switch_baseline = zeros(1, length(out));
 
 for sess_i = 1:length(out)
-    L_sig_odds = out{sess_i}.shuf_perc_odds >= 0.95;
-    R_sig_odds = out{sess_i}.shuf_perc_odds <= 0.05;
-
-    L_sig_diff = out{sess_i}.shuf_perc_diff >= 0.95;
-    R_sig_diff = out{sess_i}.shuf_perc_diff <= 0.05;
+%     L_sig_odds = out{sess_i}.shuf_perc_odds >= 0.95;
+%     R_sig_odds = out{sess_i}.shuf_perc_odds <= 0.05;
+% 
+%     L_sig_diff = out{sess_i}.shuf_perc_diff >= 0.95;
+%     R_sig_diff = out{sess_i}.shuf_perc_diff <= 0.05;
 
     SWR_data = out{sess_i}.actual_pL - out{sess_i}.actual_pR;
     % SWR_data = SWR_data(L_sig_odds | R_sig_odds);
@@ -194,11 +194,11 @@ for sess_i = 1:length(out)
     cfg_switch.devt_max = 50;
 
     p_switch_shuffles{sess_i} = zeros(n_shuffles, 50);
-    L_sig_odds = out{sess_i}.shuf_perc_odds >= 0.95;
-    R_sig_odds = out{sess_i}.shuf_perc_odds <= 0.05;
-
-    L_sig_diff = out{sess_i}.shuf_perc_diff >= 0.95;
-    R_sig_diff = out{sess_i}.shuf_perc_diff <= 0.05;
+%     L_sig_odds = out{sess_i}.shuf_perc_odds >= 0.95;
+%     R_sig_odds = out{sess_i}.shuf_perc_odds <= 0.05;
+% 
+%     L_sig_diff = out{sess_i}.shuf_perc_diff >= 0.95;
+%     R_sig_diff = out{sess_i}.shuf_perc_diff <= 0.05;
 
     SWR_data = out{sess_i}.actual_pL - out{sess_i}.actual_pR;
     % SWR_data = SWR_data(L_sig_odds | R_sig_odds);
@@ -226,13 +226,32 @@ for sess_i = 1:length(out)
     h = shadedErrorBar(1:length(p_switch{sess_i}), mean(p_switch_shuffles{sess_i}, 1), [u_bound;l_bound]);
     yline(p_switch_baseline(sess_i), '--k', 'Baseline');
 
-    % ylim([-0.2, 0.2]);
+    ylim([0, 0.52]);
     xlabel('Delta event index')
     ylabel('P(switch)')
     set(gca,'FontSize', 18)
-%     title(sprintf('All events Session %d', sess_i))
+    title(sprintf('All events pL = %.1f', pLs(sess_i)))
 %     title(sprintf('Significant events by odd ratio Session %d', sess_i))
-    title(sprintf('Significant events by pL - pR Session %d', sess_i))
+%     title(sprintf('Significant events by pL - pR Session %d', sess_i))
 
-    saveas(gcf, sprintf('sig_by_diff_%d.jpg', sess_i));
+    saveas(gcf, sprintf('sig_pL_%.1f.jpg', pLs(sess_i)));
+end
+
+%% Simulate indepedent events for testing
+n_evts = 1000;
+pLs = [0.1, 0.2, 0.3, 0.4, 0.5];
+out = cell(1, length(pLs));
+
+for pL_i = 1:length(pLs)
+    pL = pLs(pL_i);
+    out{pL_i}.actual_pL = zeros(1, n_evts);
+    out{pL_i}.actual_pR = zeros(1, n_evts);
+    
+    for evt_i = 1:n_evts
+        if rand() <= pL
+            out{pL_i}.actual_pL(evt_i) = 1;
+        else
+            out{pL_i}.actual_pR(evt_i) = 1;
+        end
+    end
 end
