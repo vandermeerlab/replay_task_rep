@@ -54,8 +54,11 @@ l_bound =shuffle_mean - prctile(acf_shuffles, 2.5, 1);
 h = shadedErrorBar(lags, shuffle_mean, [u_bound; l_bound]);
 
 %% Select significant events
-L_sig = out.shuf_perc >= 0.95 & out.shuf_perc < 1;
-R_sig = out.shuf_perc <= 0.05 & out.shuf_perc > 0;
+L_sig_odds = out.shuf_perc_odds >= 0.95;
+R_sig_odds = out.shuf_perc_odds <= 0.05;
+
+L_sig_diff = out.shuf_perc_diff >= 0.95;
+R_sig_diff = out.shuf_perc_diff <= 0.05;
 
 %%
 Q_SWR = MakeQfromS(cfg_Q,expComb.decS);
@@ -98,11 +101,11 @@ sig_SWR_times = SWR_times(sig_SWR_idx);
 cfg_sw = [];
 % bin_size = 0.2;
 % cfg_sw.bin_egdes = -1.2:bin_size:1.8;
-% [p_switch, SWR_t_diffs] = calculate_p_switch(cfg_sw, SWR_data, SWR_times);
+% [p_switch, SWR_t_diffs] = calculate_p_switch_by_time(cfg_sw, SWR_data, SWR_times);
 
 bin_size = 0.25;
 cfg_sw.bin_egdes = 0:bin_size:2;
-[p_switch, SWR_t_diffs] = calculate_p_switch(cfg_sw, SWR_data(sig_SWR_idx), sig_SWR_times);
+[p_switch, SWR_t_diffs] = calculate_p_switch_by_time(cfg_sw, SWR_data(sig_SWR_idx), sig_SWR_times);
 
 t_diffs_x = cfg_sw.bin_egdes(1:end-1) + bin_size / 2;
 plot(t_diffs_x, p_switch, '.-r');
@@ -120,12 +123,12 @@ p_switch_shuffles = zeros(n_shuffles, length(t_diffs_x));
 
 for s_i = 1:n_shuffles
 %     shuffle_indices = randperm(length(SWR_data));
-%     [s_p_switch] = calculate_p_switch(SWR_data(shuffle_indices), SWR_times);
+%     [s_p_switch] = calculate_p_switch_by_time(SWR_data(shuffle_indices), SWR_times);
 
     shuffle_indices = randperm(length(sig_SWR_idx));
     s_sig_SWR_idx = sig_SWR_idx(shuffle_indices);
     % SWR times for significant events should stay constant
-    [s_p_switch] = calculate_p_switch(cfg_sw, SWR_data(s_sig_SWR_idx), SWR_times(sig_SWR_idx));
+    [s_p_switch] = calculate_p_switch_by_time(cfg_sw, SWR_data(s_sig_SWR_idx), SWR_times(sig_SWR_idx));
     
     p_switch_shuffles(s_i, :) = s_p_switch;
 end
@@ -157,3 +160,73 @@ for i = 1:size(bev_state_titles, 2)
     title(bev_state_title);
     set(gca,'FontSize', 18)
 end
+
+%% Calculate (adjusted) probablity of switching by delta event index
+p_switch = cell(1, length(out));
+p_switch_baseline = zeros(1, length(out));
+
+for sess_i = 1:length(out)
+    L_sig_odds = out{sess_i}.shuf_perc_odds >= 0.95;
+    R_sig_odds = out{sess_i}.shuf_perc_odds <= 0.05;
+    
+    L_sig_diff = out{sess_i}.shuf_perc_diff >= 0.95;
+    R_sig_diff = out{sess_i}.shuf_perc_diff <= 0.05;
+
+    SWR_data = out{sess_i}.actual_pL - out{sess_i}.actual_pR;
+    % SWR_data = SWR_data(L_sig_odds | R_sig_odds);
+    %  SWR_data = SWR_data(L_sig_diff | R_sig_diff);
+    SWR_data = SWR_data(~isnan(SWR_data));
+    
+    cfg_switch = [];
+    cfg_switch.devt_max = 50;
+    p_switch{sess_i} = calculate_p_switch_by_index(cfg_switch, SWR_data);
+    % Calculate baseline: 2*pL*pR
+    pL = sum(SWR_data > 0) / length(SWR_data);
+    p_switch_baseline(sess_i) = 2 * pL * (1-pL);
+end
+
+%% Shuffling SWR indices
+n_shuffles = 1000;
+p_switch_shuffles = cell(1, length(out));
+
+for sess_i = 1:length(out)
+    cfg_switch = [];
+    cfg_switch.devt_max = 50;
+    
+    p_switch_shuffles{sess_i} = zeros(n_shuffles, 50);
+    L_sig_odds = out{sess_i}.shuf_perc_odds >= 0.95;
+    R_sig_odds = out{sess_i}.shuf_perc_odds <= 0.05;
+    
+    L_sig_diff = out{sess_i}.shuf_perc_diff >= 0.95;
+    R_sig_diff = out{sess_i}.shuf_perc_diff <= 0.05;
+    
+    SWR_data = out{sess_i}.actual_pL - out{sess_i}.actual_pR;
+    % SWR_data = SWR_data(L_sig_odds | R_sig_odds);
+    SWR_data = SWR_data(L_sig_diff | R_sig_diff);
+    SWR_data = SWR_data(~isnan(SWR_data));
+    
+    for s_i = 1:n_shuffles
+        shuffle_indices = randperm(length(SWR_data));
+        s_SWR_data = SWR_data(shuffle_indices);
+        
+        % SWR times for significant events should stay constant
+        s_p_switch = calculate_p_switch_by_index(cfg_switch, s_SWR_data);
+        
+        p_switch_shuffles{sess_i}(s_i, :) = s_p_switch;
+    end
+end
+
+%%
+plot(1:length(p_switch{1}), p_switch{1}, '.-r');
+
+u_bound = prctile(p_switch_shuffles, 97.5, 1) - mean(p_switch_shuffles, 1);
+l_bound = mean(p_switch_shuffles, 1) - prctile(p_switch_shuffles, 2.5, 1);
+h = shadedErrorBar(1:length(p_switch), mean(p_switch_shuffles, 1), [u_bound;l_bound]);
+
+ylim([-0.5, 0.5]);
+xlabel('Session Index')
+ylabel('P(switch)')
+set(gca,'FontSize', 18)
+% title('All events')
+% title('Significant events by odd ratio')
+title('Significant events by pL - pR')
