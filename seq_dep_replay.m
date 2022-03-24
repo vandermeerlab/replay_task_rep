@@ -161,20 +161,20 @@ for i = 1:size(bev_state_titles, 2)
     set(gca,'FontSize', 18)
 end
 
-%% Calculate (adjusted) probablity of switching by delta event index
+%% Calculate probablity of switching and baseline by delta event index
 p_switch = cell(1, length(out));
 p_switch_baseline = zeros(1, length(out));
 
 for sess_i = 1:length(out)
 %     L_sig_odds = out{sess_i}.shuf_perc_odds >= 0.95;
 %     R_sig_odds = out{sess_i}.shuf_perc_odds <= 0.05;
-% 
-%     L_sig_diff = out{sess_i}.shuf_perc_diff >= 0.95;
-%     R_sig_diff = out{sess_i}.shuf_perc_diff <= 0.05;
+
+    L_sig_diff = out{sess_i}.shuf_perc_diff >= 0.95;
+    R_sig_diff = out{sess_i}.shuf_perc_diff <= 0.05;
 
     SWR_data = out{sess_i}.actual_pL - out{sess_i}.actual_pR;
-    % SWR_data = SWR_data(L_sig_odds | R_sig_odds);
-    % SWR_data = SWR_data(L_sig_diff | R_sig_diff);
+%     SWR_data = SWR_data(L_sig_odds | R_sig_odds);
+    SWR_data = SWR_data(L_sig_diff | R_sig_diff);
     SWR_data = SWR_data(~isnan(SWR_data));
 
     cfg_switch = [];
@@ -196,13 +196,13 @@ for sess_i = 1:length(out)
     p_switch_shuffles{sess_i} = zeros(n_shuffles, 50);
 %     L_sig_odds = out{sess_i}.shuf_perc_odds >= 0.95;
 %     R_sig_odds = out{sess_i}.shuf_perc_odds <= 0.05;
-% 
-%     L_sig_diff = out{sess_i}.shuf_perc_diff >= 0.95;
-%     R_sig_diff = out{sess_i}.shuf_perc_diff <= 0.05;
+
+    L_sig_diff = out{sess_i}.shuf_perc_diff >= 0.95;
+    R_sig_diff = out{sess_i}.shuf_perc_diff <= 0.05;
 
     SWR_data = out{sess_i}.actual_pL - out{sess_i}.actual_pR;
-    % SWR_data = SWR_data(L_sig_odds | R_sig_odds);
-    % SWR_data = SWR_data(L_sig_diff | R_sig_diff);
+%     SWR_data = SWR_data(L_sig_odds | R_sig_odds);
+    SWR_data = SWR_data(L_sig_diff | R_sig_diff);
     SWR_data = SWR_data(~isnan(SWR_data));
 
     for s_i = 1:n_shuffles
@@ -230,11 +230,11 @@ for sess_i = 1:length(out)
     xlabel('Delta event index')
     ylabel('P(switch)')
     set(gca,'FontSize', 18)
-    title(sprintf('All events pL = %.1f', pLs(sess_i)))
+%     title(sprintf('All events Session %d', sess_i))
 %     title(sprintf('Significant events by odd ratio Session %d', sess_i))
-%     title(sprintf('Significant events by pL - pR Session %d', sess_i))
+    title(sprintf('Significant events by pL - pR Session %d', sess_i))
 
-    saveas(gcf, sprintf('sig_pL_%.1f.jpg', pLs(sess_i)));
+    saveas(gcf, sprintf('sig_by_diff_%d.jpg', sess_i));
 end
 
 %% Simulate indepedent events for testing
@@ -255,3 +255,31 @@ for pL_i = 1:length(pLs)
         end
     end
 end
+
+%% Calculate adjusted (by independent baseline) probability of switching across sessions
+adj_p_switch = zeros(length(out), length(p_switch{1}));
+for sess_i = 1:length(out)
+    adj_p_switch(sess_i, :) = p_switch{sess_i} - p_switch_baseline(sess_i);
+end
+
+%%
+adj_p_switch_m = nanmean(adj_p_switch, 1);
+adj_p_switch_sem = nanstd(adj_p_switch, 1) / sqrt(size(adj_p_switch, 1));
+
+x = 1:size(adj_p_switch, 2);
+xpad = 0.5;
+h = errorbar(x, adj_p_switch_m, adj_p_switch_sem, 'LineWidth', 1.5);
+set(h, 'Color', 'k');
+hold on;
+plot(x, adj_p_switch_m, '.k', 'MarkerSize', 20);
+set(gca, 'XTick', 1:5:size(adj_p_switch, 2),  ...
+    'XLim', [x(1)-xpad x(end)+xpad], 'FontSize', 18, ...
+    'LineWidth', 1, 'TickDir', 'out');
+box off;
+plot([x(1)-xpad x(end)+xpad], [0 0], '--k', 'LineWidth', 1, 'Color', [0.7 0.7 0.7]);
+
+xlabel('Delta event index')
+ylabel('adjusted P(switch)')
+% title('All events')
+% title('Significant events by odd ratio')
+title('Significant events by pL - pR')

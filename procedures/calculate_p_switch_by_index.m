@@ -24,11 +24,11 @@ for d_i = 1:cfg.devt_max
                 % Both events are R
                 elseif SWR_evt1 < 0 && SWR_evt2 < 0
                     p_switch_devt = [p_switch_devt, 0];
-                % Switch
+                % Switch (R then L)
                 elseif SWR_evt1 < 0 && SWR_evt2 > 0
                     p_switch_devt = [p_switch_devt, 1];
-                % Switch
-                elseif SWR_evt1 > 0 && SWR_evt1 < 0
+                % Switch (L then R)
+                elseif SWR_evt1 > 0 && SWR_evt2 < 0
                     p_switch_devt = [p_switch_devt, 1];
                 end
             end
