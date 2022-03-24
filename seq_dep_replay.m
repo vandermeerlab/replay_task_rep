@@ -2,7 +2,7 @@
 restoredefaultpath; % start with clean slate
 addpath(genpath('/Users/mac/Projects/vandermeerlab/code-matlab/shared'));
 addpath(genpath('/Users/mac/Projects/vandermeerlab/code-matlab/tasks/Alyssa_Tmaze'));
-addpath(genpath('/Users/mac/Projects/papers-master/Carey_etal_submitted'));
+% addpath(genpath('/Users/mac/Projects/papers-master/Carey_etal_submitted'));
 addpath(genpath('/Users/mac/Projects/seq_dep_replay/utils'));
 addpath(genpath('/Users/mac/Projects/seq_dep_replay/procedures'));
 
