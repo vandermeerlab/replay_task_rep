@@ -131,14 +131,25 @@ chp = tsd(0,metadata.coord.chp_cm,{'x','y'}); % make choice point useable by cob
 nCond = length(expCond);
 for iCond = 1:nCond
     
+%     this_coord.coord = expCond(iCond).coord; this_coord.units = 'px'; this_coord.standardized = 0;
+%     expCond(iCond).linpos = LinearizePos([],pos,this_coord);
+%     % Compute the coordinate that the choice point corresponds
+%     cfg_linpos.outputType = 'dist';
+%     
+%     chp = tsd(0,metadata.coord.chp_cm,{'x','y'});
+%     chp.units = 'cm';
+%     chp.cfg.ExpKeys.convFact = ExpKeys.convFact;
+%     
+%     expCond(iCond).cp = LinearizePos(cfg_linpos,chp,this_coord);
+    
     cfg_linpos = []; cfg_linpos.Coord = expCond(iCond).coord;
-    expCond(iCond).linpos = LinearizePos(cfg_linpos,pos);
+    expCond(iCond).linpos = LinearizePos_old(cfg_linpos,pos);
     
     % ensure that linpos is now in cm regardless of what we started with
     expCond(iCond).linpos.data = (expCond(iCond).linpos.data ./ length(cfg_linpos.Coord)).*ExpKeys.pathlength;
     
     % get cp in linpos coordinates
-    expCond(iCond).cp = LinearizePos(cfg_linpos,chp);
+    expCond(iCond).cp = LinearizePos_old(cfg_linpos,chp);
     expCond(iCond).cp.data = (expCond(iCond).cp.data ./ length(cfg_linpos.Coord)).*ExpKeys.pathlength;
     
 end
@@ -305,7 +316,7 @@ if cfg.plotOutput
     imagesc(expComb.P.tvec,1:size(expComb.P.data,1),expComb.P.data);
     hold on;
     plot(expComb.P.tvec,map,'.w');
-    plot(expComb.linpos.tvec,expComb.tc.pos_idx,'og');
+    plot(expComb.linpos.tvec,expComb.tc.usr.pos_idx,'og');
     
     figure;
     subplot(221);
@@ -320,7 +331,7 @@ end
 
 
 %% quantify decoding accuracy on RUN
-this_trueZ = tsd(expComb.linpos.tvec,expComb.tc.pos_idx); % true position in units of bins (as established by tuning curves)
+this_trueZ = tsd(expComb.linpos.tvec,expComb.tc.usr.pos_idx); % true position in units of bins (as established by tuning curves)
 cfg_err = []; cfg_err.mode = 'max';
 
 keep_idx = unique(nearest_idx3(this_trueZ.tvec,expComb.P.tvec)); % match up decoding with true positions
