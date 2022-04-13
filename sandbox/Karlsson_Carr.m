@@ -16,3 +16,24 @@ for i = 1:length(pos{3})
     
     plot(spike_X, spike_Y, '.r')
 end
+
+%% Extract trial information
+% center: 1, left: 2, right: 4
+pos_trial = zeros(1, length(X));
+
+for pos_i = 1:length(pos_trial)
+    % Check if position is in the center arm reward area
+    if (X(pos_i) > 60 && X(pos_i) < 90) && (Y(pos_i) > 123 && Y(pos_i) < 169)
+        pos_trial(pos_i) = 1;
+    % Check if position is in the left arm reward area
+    elseif (X(pos_i) > 28 && X(pos_i) < 54) && (Y(pos_i) > 123 && Y(pos_i) < 169)
+        pos_trial(pos_i) = 2;
+    % Check if position is in the right arm reward area
+    elseif (X(pos_i) > 93 && X(pos_i) < 130) && (Y(pos_i) > 123 && Y(pos_i) < 169)
+        pos_trial(pos_i) = 4;
+    else
+        pos_trial(pos_i) = 0;
+    end
+end
+
+diff_pos_trial = diff(pos_trial);
