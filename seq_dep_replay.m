@@ -163,9 +163,12 @@ end
 
 %% Calculate adjusted (by independent baseline) probablity of switching and baseline by delta event index
 devt_max = 50;
+devt_nbin = 1;
+n_bins = devt_max / devt_nbin;
+
 p_switch = cell(1, length(out));
 p_switch_baseline = zeros(1, length(out));
-adj_p_switch = zeros(length(out), devt_max);
+adj_p_switch = zeros(length(out), n_bins);
 
 for sess_i = 1:length(out)
 %     L_sig_odds = out{sess_i}.shuf_perc_odds >= 0.95;
@@ -181,7 +184,8 @@ for sess_i = 1:length(out)
 
     cfg_switch = [];
     cfg_switch.devt_max = devt_max;
-    p_switch{sess_i} = calculate_p_switch_by_index(cfg_switch, SWR_data);
+    cfg_switch.devt_nbin = devt_nbin;
+    [p_switch{sess_i}] = calculate_p_switch_by_index(cfg_switch, SWR_data);
     % Calculate baseline: 2*pL*pR
     pL = sum(SWR_data > 0) / length(SWR_data);
     p_switch_baseline(sess_i) = 2 * pL * (1-pL);
@@ -196,9 +200,10 @@ adj_p_switch_shuffles = cell(1, length(out));
 
 for sess_i = 1:length(out)
     cfg_switch = [];
-    cfg_switch.devt_max = 50;
+    cfg_switch.devt_max = devt_max;
+    cfg_switch.devt_nbin = devt_nbin;
 
-    p_switch_shuffles{sess_i} = zeros(n_shuffles, 50);
+    p_switch_shuffles{sess_i} = zeros(n_shuffles, n_bins);
 %     L_sig_odds = out{sess_i}.shuf_perc_odds >= 0.95;
 %     R_sig_odds = out{sess_i}.shuf_perc_odds <= 0.05;
 
@@ -266,7 +271,7 @@ end
 adj_p_switch_m = nanmean(adj_p_switch, 1);
 adj_p_switch_sem = nanstd(adj_p_switch, 1) / sqrt(size(adj_p_switch, 1));
 
-adj_p_switch_shuffles_mat = zeros(1000, 50);
+adj_p_switch_shuffles_mat = zeros(1000, n_bins);
 for i = 1:1000
     shuffles_mat = [];
     for sess_i = 1:length(out)
@@ -290,22 +295,22 @@ end
 %     end
 % end
 
-x = 1:size(adj_p_switch, 2);
+x = 1:devt_nbin:size(adj_p_switch, 2)*devt_nbin;
 xpad = 0.5;
 h = errorbar(x, adj_p_switch_m, adj_p_switch_sem, 'LineWidth', 1.5); hold on;
 set(h, 'Color', 'k');
 
 u_bound = prctile(adj_p_switch_shuffles_mat, 97.5, 1) - mean(adj_p_switch_shuffles_mat, 1);
 l_bound = mean(adj_p_switch_shuffles_mat, 1) - prctile(adj_p_switch_shuffles_mat, 2.5, 1);
-sh = shadedErrorBar(1:size(adj_p_switch_m, 2), mean(adj_p_switch_shuffles_mat, 1), [u_bound;l_bound]);
+sh = shadedErrorBar(x, mean(adj_p_switch_shuffles_mat, 1), [u_bound;l_bound]);
 
 % sh = errorbar(x, shuf_adj_p_switch_m, shuf_adj_p_switch_sem, 'LineWidth', 1.5); hold on;
 % set(sh, 'Color', [0.7 0.7 0.7]);
 
 hold on;
 plot(x, adj_p_switch_m, '.k', 'MarkerSize', 20);
-set(gca, 'XTick', 1:5:size(adj_p_switch, 2),  ...
-    'XLim', [x(1)-xpad x(end)+xpad], 'FontSize', 18, ...
+set(gca, 'XTick', 1:5*devt_nbin:size(adj_p_switch, 2)*devt_nbin,  ...
+    'XLim', [x(1)-xpad x(end)+xpad], 'YLim', [-0.02, 0.02], 'FontSize', 18, ...
     'LineWidth', 1, 'TickDir', 'out');
 box off;
 plot([x(1)-xpad x(end)+xpad], [0 0], '--k', 'LineWidth', 1, 'Color', [0.7 0.7 0.7]);
