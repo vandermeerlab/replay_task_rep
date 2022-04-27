@@ -139,4 +139,50 @@ for l_i = 1:length(all_trial_starts)
 end
 
 %%
-save('ExpKeys03.mat','ExpKeys');
+save('ExpKeys03.mat','ExpKeys');ExpKeys{session_i}.trial_start_R = trial_start_R;
+ExpKeys{session_i}.trial_end_R = trial_end_R;
+ExpKeys{session_i}.trial_start_L = trial_start_L;
+ExpKeys{session_i}.trial_end_L = trial_end_L;
+
+%%
+save(ExpKeys_filename,'ExpKeys');
+
+
+%% Count the number of CA1 cells for all days across subjects.
+temp_fd = dir;
+temp_fd = temp_fd(3:end);
+temp_fd = temp_fd([temp_fd.isdir]);
+n_CA1_list = [];
+
+for iFD = 1:length(temp_fd)
+    cd(temp_fd(iFD).name)
+    m = FindFiles('*cellinfo.mat');
+    if ~isempty(m)
+        load(m{1})
+    end
+    for day_i = 1:length(cellinfo)
+        if ~isempty(cellinfo{day_i})
+            all_tetrodes = cellinfo{day_i}{2};
+            n_CA1_cells = 0;
+            for tet_i = 1:length(all_tetrodes)
+                if ~isempty(all_tetrodes{tet_i})
+                    this_tetrode = all_tetrodes{tet_i};
+                    for cell_i = 1:length(this_tetrode)
+                        if ~isempty(this_tetrode{cell_i}) && isfield(this_tetrode{cell_i}, 'area') && strcmp(this_tetrode{cell_i}.area, 'CA1')
+                            n_CA1_cells = n_CA1_cells + 1;
+                        end
+                    end
+                end
+            end
+            if n_CA1_cells >= 30
+                disp(temp_fd(iFD).name)
+                disp(day_i)
+            end
+            n_CA1_list = [n_CA1_list, n_CA1_cells];
+        end
+    end
+    clear m
+    cd ..
+end
+
+%% Count the number of sessions whose number of CA1 cells is larger than threshold (40).
