@@ -1,4 +1,4 @@
-function [p_switch, SWR_t_diffs] = calculate_p_switch_by_time(cfg_in, SWR_data, SWR_times)
+function [p_switch, num_events_bin] = calculate_p_switch_by_time(cfg_in, SWR_data, SWR_times)
 
 cfg_def = [];
 cfg_def.bin_egdes = -1.2:0.2:1.8;
@@ -30,11 +30,18 @@ for i = 1:length(SWR_times)-1
 end
 
 p_switch = zeros(1, length(cfg.bin_egdes)-1);
+num_events_bin = zeros(1, length(cfg.bin_egdes)-1);
 
 t_diffs_bin_indices = discretize(log10(SWR_t_diffs), cfg.bin_egdes);
-for bin_i = 1:max(t_diffs_bin_indices)
+for bin_i = 1:length(p_switch)
     p_switch_bin = SWR_t_switch(t_diffs_bin_indices == bin_i);
-    p_switch(bin_i) = sum(p_switch_bin) / length(p_switch_bin);
+    if isempty(p_switch_bin)
+        p_switch(bin_i) = NaN;
+        num_events_bin(bin_i) = 0;
+    else
+        p_switch(bin_i) = sum(p_switch_bin) / length(p_switch_bin);
+        num_events_bin(bin_i) = length(p_switch_bin);
+    end
 end
 
 end

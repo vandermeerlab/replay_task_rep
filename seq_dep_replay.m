@@ -91,52 +91,6 @@ ylim([-0.25, 1.25]);
 xlabel('Time (s)')
 set(gca, 'ytick',[], 'FontSize', 18)
 
-%% Plot Inter-SWRs-interval as a function of time.
-SWR_data = actual_L_R_diff;
-SWR_times = Q_SWR.tvec;
-
-sig_SWR_idx = find(L_sig | R_sig);
-sig_SWR_times = SWR_times(sig_SWR_idx);
-
-cfg_sw = [];
-% bin_size = 0.2;
-% cfg_sw.bin_egdes = -1.2:bin_size:1.8;
-% [p_switch, SWR_t_diffs] = calculate_p_switch_by_time(cfg_sw, SWR_data, SWR_times);
-
-bin_size = 0.25;
-cfg_sw.bin_egdes = 0:bin_size:2;
-[p_switch, SWR_t_diffs] = calculate_p_switch_by_time(cfg_sw, SWR_data(sig_SWR_idx), sig_SWR_times);
-
-t_diffs_x = cfg_sw.bin_egdes(1:end-1) + bin_size / 2;
-plot(t_diffs_x, p_switch, '.-r');
-yline(0.5, '--k', 'HandleVisibility','off');
-
-xlim([-0.75, 1.75]);
-ylim([-0.25, 1.25]);
-xlabel('log10 (time elapsed since last SWR)')
-ylabel('P(switch)')
-set(gca,'FontSize', 18)
-
-%% Shuffling SWR indices
-n_shuffles = 1000;
-p_switch_shuffles = zeros(n_shuffles, length(t_diffs_x));
-
-for s_i = 1:n_shuffles
-%     shuffle_indices = randperm(length(SWR_data));
-%     [s_p_switch] = calculate_p_switch_by_time(SWR_data(shuffle_indices), SWR_times);
-
-    shuffle_indices = randperm(length(sig_SWR_idx));
-    s_sig_SWR_idx = sig_SWR_idx(shuffle_indices);
-    % SWR times for significant events should stay constant
-    [s_p_switch] = calculate_p_switch_by_time(cfg_sw, SWR_data(s_sig_SWR_idx), SWR_times(sig_SWR_idx));
-
-    p_switch_shuffles(s_i, :) = s_p_switch;
-end
-
-u_bound = prctile(p_switch_shuffles, 97.5, 1) - mean(p_switch_shuffles, 1);
-l_bound = mean(p_switch_shuffles, 1) - prctile(p_switch_shuffles, 2.5, 1);
-h = shadedErrorBar(t_diffs_x, mean(p_switch_shuffles, 1), [u_bound;l_bound]);
-
 %% Plot autocorrelation of odd ratos against (significant) SWR event indices (pre-task, ITI, post-task)
 bev_state_titles = {'Pre-task', 'ITI', 'Post-task'};
 L_or_R_sig = L_sig | R_sig;
@@ -161,36 +115,52 @@ for i = 1:size(bev_state_titles, 2)
     set(gca,'FontSize', 18)
 end
 
-%% Calculate adjusted (by independent baseline) probablity of switching and baseline by delta event index
-devt_max = 50;
-devt_nbin = 1;
-n_bins = devt_max / devt_nbin;
+%% Plot the distribution Inter-SWRs-interval across sessions
+SWR_time_diffs = [];
+for sess_i = 1:length(out)
+    SWR_times = out{sess_i}.tvec;
+    SWR_time_diffs = [SWR_time_diffs; diff(SWR_times)];
+end
+
+figure;
+histogram(log10(SWR_time_diffs));
+xlabel('log10 (time elapsed since last SWR)')
+ylabel('Proportion')
+set(gca, 'ytick',[], 'FontSize', 18)
+title('Distribution of Inter-SWRs-interval')
+
+%% Plot Inter-SWRs-interval as a function of time.
+sig_events_only = 1;
+num_events_bin_mat = [];
 
 p_switch = cell(1, length(out));
 p_switch_baseline = zeros(1, length(out));
-adj_p_switch = zeros(length(out), n_bins);
+adj_p_switch = [];
 
 for sess_i = 1:length(out)
-%     L_sig_odds = out{sess_i}.shuf_perc_odds >= 0.95;
-%     R_sig_odds = out{sess_i}.shuf_perc_odds <= 0.05;
-
-%     L_sig_diff = out{sess_i}.shuf_perc_diff >= 0.95;
-%     R_sig_diff = out{sess_i}.shuf_perc_diff <= 0.05;
-
     SWR_data = out{sess_i}.actual_pL - out{sess_i}.actual_pR;
-%     SWR_data = SWR_data(L_sig_odds | R_sig_odds);
-%     SWR_data = SWR_data(L_sig_diff | R_sig_diff);
-    SWR_data = SWR_data(~isnan(SWR_data));
+    SWR_times = out{sess_i}.tvec;
 
-    cfg_switch = [];
-    cfg_switch.devt_max = devt_max;
-    cfg_switch.devt_nbin = devt_nbin;
-    [p_switch{sess_i}] = calculate_p_switch_by_index(cfg_switch, SWR_data);
+    if sig_events_only
+        L_sig_odds = out{sess_i}.shuf_perc_odds >= 0.95;
+        R_sig_odds = out{sess_i}.shuf_perc_odds <= 0.05;
+        SWR_data = SWR_data(L_sig_odds | R_sig_odds);
+        SWR_times = SWR_times(L_sig_odds | R_sig_odds);
+    end
+    SWR_data = SWR_data(~isnan(SWR_data));
+    SWR_times = SWR_times(~isnan(SWR_data));
+
+    cfg_sw = [];
+    bin_size = 0.1;
+    cfg_sw.bin_egdes = -1:bin_size:2;
+    [p_switch{sess_i}, num_events_bin{sess_i}] = calculate_p_switch_by_time(cfg_sw, SWR_data, SWR_times);
+    num_events_bin_mat = [num_events_bin_mat; num_events_bin{sess_i}];
+
     % Calculate baseline: 2*pL*pR
     pL = sum(SWR_data > 0) / length(SWR_data);
     p_switch_baseline(sess_i) = 2 * pL * (1-pL);
 
-    adj_p_switch(sess_i, :) = p_switch{sess_i} - p_switch_baseline(sess_i);
+    adj_p_switch = [adj_p_switch; p_switch{sess_i} - p_switch_baseline(sess_i)];
 end
 
 %% Shuffling SWR indices
@@ -199,124 +169,55 @@ p_switch_shuffles = cell(1, length(out));
 adj_p_switch_shuffles = cell(1, length(out));
 
 for sess_i = 1:length(out)
-    cfg_switch = [];
-    cfg_switch.devt_max = devt_max;
-    cfg_switch.devt_nbin = devt_nbin;
-
-    p_switch_shuffles{sess_i} = zeros(n_shuffles, n_bins);
-%     L_sig_odds = out{sess_i}.shuf_perc_odds >= 0.95;
-%     R_sig_odds = out{sess_i}.shuf_perc_odds <= 0.05;
-
-%     L_sig_diff = out{sess_i}.shuf_perc_diff >= 0.95;
-%     R_sig_diff = out{sess_i}.shuf_perc_diff <= 0.05;
 
     SWR_data = out{sess_i}.actual_pL - out{sess_i}.actual_pR;
-%     SWR_data = SWR_data(L_sig_odds | R_sig_odds);
-%     SWR_data = SWR_data(L_sig_diff | R_sig_diff);
+    SWR_times = out{sess_i}.tvec;
+
+    if sig_events_only
+        L_sig_odds = out{sess_i}.shuf_perc_odds >= 0.95;
+        R_sig_odds = out{sess_i}.shuf_perc_odds <= 0.05;
+        SWR_data = SWR_data(L_sig_odds | R_sig_odds);
+        SWR_times = SWR_times(L_sig_odds | R_sig_odds);
+    end
     SWR_data = SWR_data(~isnan(SWR_data));
+    SWR_times = SWR_times(~isnan(SWR_data));
+
+    cfg_sw = [];
+    bin_size = 0.1;
+    cfg_sw.bin_egdes = -1:bin_size:2;
 
     for s_i = 1:n_shuffles
         shuffle_indices = randperm(length(SWR_data));
         s_SWR_data = SWR_data(shuffle_indices);
-
-        % SWR times for significant events should stay constant
-        s_p_switch = calculate_p_switch_by_index(cfg_switch, s_SWR_data);
+        [s_p_switch] = calculate_p_switch_by_time(cfg_sw, s_SWR_data, SWR_times);
 
         p_switch_shuffles{sess_i}(s_i, :) = s_p_switch;
         adj_p_switch_shuffles{sess_i}(s_i, :) = s_p_switch - p_switch_baseline(sess_i);
     end
 end
 
-%% Simulate indepedent events for testing
-n_evts = 1000;
-pLs = [0.1, 0.2, 0.3, 0.4, 0.5];
-out = cell(1, length(pLs));
-
-for pL_i = 1:length(pLs)
-    pL = pLs(pL_i);
-    out{pL_i}.actual_pL = zeros(1, n_evts);
-    out{pL_i}.actual_pR = zeros(1, n_evts);
-    
-    for evt_i = 1:n_evts
-        if rand() <= pL
-            out{pL_i}.actual_pL(evt_i) = 1;
-        else
-            out{pL_i}.actual_pR(evt_i) = 1;
-        end
-    end
-end
-
 %% Plotting probablity of switching with baseline for each session
 for sess_i = 1:length(out)
+    t_diffs_x = cfg_sw.bin_egdes(1:end-1) + bin_size / 2;
+
     figure;
-    plot(1:length(p_switch{sess_i}), p_switch{sess_i}, '.-r');
+    plot(t_diffs_x, p_switch{sess_i}, '.-r'); hold on;
+    yline(p_switch_baseline(sess_i), '--k', 'Baseline'); hold on;
 
     u_bound = prctile(p_switch_shuffles{sess_i}, 97.5, 1) - mean(p_switch_shuffles{sess_i}, 1);
     l_bound = mean(p_switch_shuffles{sess_i}, 1) - prctile(p_switch_shuffles{sess_i}, 2.5, 1);
-    h = shadedErrorBar(1:length(p_switch{sess_i}), mean(p_switch_shuffles{sess_i}, 1), [u_bound;l_bound]);
-    yline(p_switch_baseline(sess_i), '--k', 'Baseline');
+    h = shadedErrorBar(t_diffs_x, mean(p_switch_shuffles{sess_i}, 1), [u_bound;l_bound]);
 
-    ylim([0, 0.52]);
-    xlabel('Delta event index')
-    ylabel('P(switch)')
+    xlim([-1, 2]);
+    ylim([-0.25, 1.25]);
+    xlabel('log10 (time elapsed since last SWR)')
+    ylabel('P(interleave)')
     set(gca,'FontSize', 18)
-    title(sprintf('All events Session %d', sess_i))
-%     title(sprintf('Significant events by odd ratio Session %d', sess_i))
-%     title(sprintf('Significant events by pL - pR Session %d', sess_i))
 
-%     saveas(gcf, sprintf('sig_by_diff_%d.jpg', sess_i));
-end
-
-%% Plotting adjusted (by independent baseline) probablity of switching across sessions
-adj_p_switch_m = nanmean(adj_p_switch, 1);
-adj_p_switch_sem = nanstd(adj_p_switch, 1) / sqrt(size(adj_p_switch, 1));
-
-adj_p_switch_shuffles_mat = zeros(1000, n_bins);
-for i = 1:1000
-    shuffles_mat = [];
-    for sess_i = 1:length(out)
-        if isempty(shuffles_mat)
-            shuffles_mat = adj_p_switch_shuffles{sess_i}(i, :);
-        else
-            shuffles_mat = [shuffles_mat; adj_p_switch_shuffles{sess_i}(i, :)];
-        end
+    if sig_events_only
+        title(sprintf('Significant events by odd ratio Session %d', sess_i));
+    else
+        title(sprintf('All events Session %d', sess_i));
     end
-    adj_p_switch_shuffles_mat(i, :) = mean(shuffles_mat, 1);
+    saveas(gcf, sprintf('all_events_%d.jpg', sess_i));
 end
-%
-% adj_p_switch_shuffles_m = cellfun(@(x) mean(x, 1) ,adj_p_switch_shuffles, 'UniformOutput', false);
-%
-% adj_p_switch_shuffles_mat = [];
-% for sess_i = 1:length(out)
-%     if isempty(adj_p_switch_shuffles_mat)
-%         adj_p_switch_shuffles_mat = adj_p_switch_shuffles_m{sess_i};
-%     else
-%         adj_p_switch_shuffles_mat = [adj_p_switch_shuffles_mat; adj_p_switch_shuffles_m{sess_i}];
-%     end
-% end
-
-x = 1:devt_nbin:size(adj_p_switch, 2)*devt_nbin;
-xpad = 0.5;
-h = errorbar(x, adj_p_switch_m, adj_p_switch_sem, 'LineWidth', 1.5); hold on;
-set(h, 'Color', 'k');
-
-u_bound = prctile(adj_p_switch_shuffles_mat, 97.5, 1) - mean(adj_p_switch_shuffles_mat, 1);
-l_bound = mean(adj_p_switch_shuffles_mat, 1) - prctile(adj_p_switch_shuffles_mat, 2.5, 1);
-sh = shadedErrorBar(x, mean(adj_p_switch_shuffles_mat, 1), [u_bound;l_bound]);
-
-% sh = errorbar(x, shuf_adj_p_switch_m, shuf_adj_p_switch_sem, 'LineWidth', 1.5); hold on;
-% set(sh, 'Color', [0.7 0.7 0.7]);
-
-hold on;
-plot(x, adj_p_switch_m, '.k', 'MarkerSize', 20);
-set(gca, 'XTick', 1:5*devt_nbin:size(adj_p_switch, 2)*devt_nbin,  ...
-    'XLim', [x(1)-xpad x(end)+xpad], 'YLim', [-0.02, 0.02], 'FontSize', 18, ...
-    'LineWidth', 1, 'TickDir', 'out');
-box off;
-plot([x(1)-xpad x(end)+xpad], [0 0], '--k', 'LineWidth', 1, 'Color', [0.7 0.7 0.7]);
-
-xlabel('Delta event index')
-ylabel('adjusted P(switch)')
-title('All events')
-% title('Significant events by odd ratio')
-% title('Significant events by pL - pR')

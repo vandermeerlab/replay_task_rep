@@ -8,7 +8,7 @@ function [p_switch] = calculate_p_switch_by_index(cfg_in, SWR_data)
 
 cfg_def = [];
 cfg_def.devt_max = 50;
-cfg_def.devt_nbin = 1;
+% cfg_def.devt_nbin = 1;
 
 cfg = ProcessConfig(cfg_def,cfg_in);
 
@@ -39,16 +39,16 @@ for d_i = 1:cfg.devt_max
     end
 end
 
-if cfg.devt_nbin > 1
-    n_bins = cfg.devt_max / cfg.devt_nbin;
-    p_switch_bin = zeros(1, n_bins);
-    for bin_i = 0:n_bins-1
-        devt_i_start = bin_i * cfg.devt_nbin + 1;
-        devt_i_end = devt_i_start + cfg.devt_nbin - 1;
-        p_switch_bin(bin_i+1) = sum(p_switch(devt_i_start:devt_i_end) .* n_delta_events(devt_i_start:devt_i_end)) / sum(n_delta_events(devt_i_start:devt_i_end));
-        % p_switch_bin(bin_i+1) = nanmean(p_switch(devt_i_start:devt_i_end));
-    end
-    p_switch = p_switch_bin;
-end
+% if cfg.devt_nbin > 1
+%     n_bins = cfg.devt_max / cfg.devt_nbin;
+%     p_switch_bin = zeros(1, n_bins);
+%     for bin_i = 0:n_bins-1
+%         devt_i_start = bin_i * cfg.devt_nbin + 1;
+%         devt_i_end = devt_i_start + cfg.devt_nbin - 1;
+%         p_switch_bin(bin_i+1) = sum(p_switch(devt_i_start:devt_i_end) .* n_delta_events(devt_i_start:devt_i_end)) / sum(n_delta_events(devt_i_start:devt_i_end));
+%         % p_switch_bin(bin_i+1) = nanmean(p_switch(devt_i_start:devt_i_end));
+%     end
+%     p_switch = p_switch_bin;
+% end
 
 end
