@@ -62,6 +62,7 @@ cfg_def.writeFiles = 1;
 cfg_def.removeInterneurons = 0;
 cfg_def.keepPosterior = 0;
 cfg_def.postCPonly = 0;
+cfg_def.use_only_off_track_SWR = 1;
 
 nMaxLaps = 20;
 cfg_def.encdecmat = ones(1,nMaxLaps);
@@ -378,6 +379,14 @@ out.right_chance_pre = np_r1./(np_l1+np_l2+np_r1+np_r2); out.right_chance_post =
 cfg_shuf_LR.dt = 0.05; % this sets the binsize in decoding
 LoadCandidates;
 
+if cfg.use_only_off_track_SWR
+    rest_iv = metadata.taskvars.rest_iv;
+    off_track_iv = rest_iv;
+    off_track_iv.tstart = [ExpKeys.prerecord(1); rest_iv.tstart; ExpKeys.postrecord(1)];
+    off_track_iv.tend = [ExpKeys.prerecord(2); rest_iv.tend; ExpKeys.postrecord(2)];
+    evt = restrict(evt, off_track_iv)
+end
+
 % make Q-matrix based on events
 cfg_Q = [];
 %cfg_Q.tvec_edges = sort(cat(1,evt.tstart,evt.tend)); % raw events, have variable length...
@@ -459,5 +468,6 @@ out.shuf_z_diff = (actual_diff-nanmean(shuf_diff))./nanstd(shuf_diff);
 out.shuf_z_diff(isnan(actual_diff)) = NaN;
 
 out.tvec = tvec_centers;
+out.behav_sequence = metadata.taskvars.sequence;
 % odds are left over right. So percentile = big means left, percentile =
 % small means right.

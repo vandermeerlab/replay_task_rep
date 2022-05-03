@@ -131,11 +131,13 @@ title('Distribution of Inter-SWRs-interval')
 
 %% Plot Inter-SWRs-interval as a function of time.
 sig_events_only = 1;
-num_events_bin_mat = [];
+bin_size = 0.1;
+bin_egdes = -1:bin_size:2;
 
 p_switch = cell(1, length(out));
 p_switch_baseline = zeros(1, length(out));
 adj_p_switch = [];
+num_events_bin_mat = [];
 
 for sess_i = 1:length(out)
     SWR_data = out{sess_i}.actual_pL - out{sess_i}.actual_pR;
@@ -151,8 +153,7 @@ for sess_i = 1:length(out)
     SWR_times = SWR_times(~isnan(SWR_data));
 
     cfg_sw = [];
-    bin_size = 0.1;
-    cfg_sw.bin_egdes = -1:bin_size:2;
+    cfg_sw.bin_egdes = bin_egdes;
     [p_switch{sess_i}, num_events_bin{sess_i}] = calculate_p_switch_by_time(cfg_sw, SWR_data, SWR_times);
     num_events_bin_mat = [num_events_bin_mat; num_events_bin{sess_i}];
 
@@ -183,8 +184,7 @@ for sess_i = 1:length(out)
     SWR_times = SWR_times(~isnan(SWR_data));
 
     cfg_sw = [];
-    bin_size = 0.1;
-    cfg_sw.bin_egdes = -1:bin_size:2;
+    cfg_sw.bin_egdes = bin_egdes;
 
     for s_i = 1:n_shuffles
         shuffle_indices = randperm(length(SWR_data));
@@ -198,7 +198,7 @@ end
 
 %% Plotting probablity of switching with baseline for each session
 for sess_i = 1:length(out)
-    t_diffs_x = cfg_sw.bin_egdes(1:end-1) + bin_size / 2;
+    t_diffs_x = bin_egdes(1:end-1) + bin_size / 2;
 
     figure;
     plot(t_diffs_x, p_switch{sess_i}, '.-r'); hold on;
@@ -219,5 +219,49 @@ for sess_i = 1:length(out)
     else
         title(sprintf('All events Session %d', sess_i));
     end
-    saveas(gcf, sprintf('all_events_%d.jpg', sess_i));
+    % saveas(gcf, sprintf('all_events_%d.jpg', sess_i));
+end
+
+%%
+adj_p_switch_shuffles_mat = zeros(1000, length(cfg_sw.bin_egdes)-1);
+for i = 1:1000
+    shuffles_mat = [];
+    for sess_i = 1:length(out)
+        if isempty(shuffles_mat)
+            shuffles_mat = adj_p_switch_shuffles{sess_i}(i, :);
+        else
+            shuffles_mat = [shuffles_mat; adj_p_switch_shuffles{sess_i}(i, :)];
+        end
+    end
+    adj_p_switch_shuffles_mat(i, :) = mean(shuffles_mat, 1);
+end
+
+%% Plotting adjusted (by independent baseline) probablity of switching across sessions
+adj_p_switch_m = nanmean(adj_p_switch, 1);
+adj_p_switch_sem = nanstd(adj_p_switch, 1) / sqrt(size(adj_p_switch, 1));
+
+x = bin_egdes(1:end-1) + bin_size / 2;
+xpad = 0.05;
+h = errorbar(x, adj_p_switch_m, adj_p_switch_sem, 'LineWidth', 1.5); hold on;
+set(h, 'Color', 'k');
+
+adj_p_switch_shuffles_m = mean(adj_p_switch_shuffles_mat, 1);
+u_bound = prctile(adj_p_switch_shuffles_mat, 97.5, 1) - adj_p_switch_shuffles_m;
+l_bound = adj_p_switch_shuffles_m - prctile(adj_p_switch_shuffles_mat, 2.5, 1);
+sh = shadedErrorBar(x, adj_p_switch_shuffles_m, [u_bound;l_bound]);
+
+hold on;
+plot(x, adj_p_switch_m, '.k', 'MarkerSize', 20);
+set(gca, 'XLim', [x(1)-xpad x(end)+xpad], 'YLim', [-0.25, 0.25], 'FontSize', 18, ...
+    'LineWidth', 1, 'TickDir', 'out');
+box off;
+plot([x(1)-xpad x(end)+xpad], [0 0], '--k', 'LineWidth', 1, 'Color', [0.7 0.7 0.7]);
+
+xlabel('log10 (time elapsed since last SWR)')
+ylabel('adjusted P(interleave)')
+
+if sig_events_only
+    title('Significant events by odd ratio');
+else
+    title('All events');
 end
