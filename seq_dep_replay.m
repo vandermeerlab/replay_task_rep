@@ -130,9 +130,10 @@ set(gca, 'ytick',[], 'FontSize', 18)
 title('Distribution of Inter-SWRs-interval')
 
 %% Plot Inter-SWRs-interval as a function of time.
-sig_events_only = 1;
+sig_events_only = 0;
 bin_size = 0.1;
 bin_egdes = -1:bin_size:2;
+devt_max = 5;
 
 p_switch = cell(1, length(out));
 p_switch_baseline = zeros(1, length(out));
@@ -154,6 +155,7 @@ for sess_i = 1:length(out)
 
     cfg_sw = [];
     cfg_sw.bin_egdes = bin_egdes;
+    cfg_sw.devt_max = devt_max;
     [p_switch{sess_i}, num_events_bin{sess_i}] = calculate_p_switch_by_time(cfg_sw, SWR_data, SWR_times);
     num_events_bin_mat = [num_events_bin_mat; num_events_bin{sess_i}];
 
@@ -185,6 +187,7 @@ for sess_i = 1:length(out)
 
     cfg_sw = [];
     cfg_sw.bin_egdes = bin_egdes;
+    cfg_sw.devt_max = devt_max;
 
     for s_i = 1:n_shuffles
         shuffle_indices = randperm(length(SWR_data));
@@ -233,7 +236,7 @@ for i = 1:1000
             shuffles_mat = [shuffles_mat; adj_p_switch_shuffles{sess_i}(i, :)];
         end
     end
-    adj_p_switch_shuffles_mat(i, :) = mean(shuffles_mat, 1);
+    adj_p_switch_shuffles_mat(i, :) = nanmean(shuffles_mat, 1);
 end
 
 %% Plotting adjusted (by independent baseline) probablity of switching across sessions
@@ -257,11 +260,11 @@ set(gca, 'XLim', [x(1)-xpad x(end)+xpad], 'YLim', [-0.25, 0.25], 'FontSize', 18,
 box off;
 plot([x(1)-xpad x(end)+xpad], [0 0], '--k', 'LineWidth', 1, 'Color', [0.7 0.7 0.7]);
 
-xlabel('log10 (time elapsed since last SWR)')
+xlabel('log10 (time elapsed since last event)')
 ylabel('adjusted P(interleave)')
 
 if sig_events_only
-    title('Significant events by odd ratio');
+    title('Significant events by odd ratio delta 1');
 else
-    title('All events');
+    title('All events delta 5');
 end
