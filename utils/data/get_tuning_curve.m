@@ -73,7 +73,6 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
     %% linearize paths (snap x,y position samples to nearest point on experimenter-drawn idealized track)
     nCond = length(expCond);
     for iCond = 1:nCond
-
         this_coord.coord = expCond(iCond).coord; this_coord.units = 'px'; this_coord.standardized = 0;
         expCond(iCond).linpos = LinearizePos([],pos,this_coord.coord);
         % Compute the coordinate that the choice point corresponds
@@ -82,14 +81,29 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
         expCond(iCond).cp = LinearizePos([],chp,this_coord.coord);
     end
 
+    %% Only include position data that not deviate from linearized path too much
+    for iCond = 1:nCond
+        this_coord.coord = expCond(iCond).coord; this_coord.units = 'px'; this_coord.standardized = 0;
+        cfg_pos = [];
+        cfg_pos.debugMode = 1;
+        [linpos_path] = LinearizePos(cfg_pos,pos,this_coord.coord);
+        % Position of deviation from linearized path
+        linpos_path.data = linpos_path.data(2, :);
+        cfg_path = []; cfg_path.method = 'raw'; cfg_path.threshold = 20; cfg_path.operation = '<';
+        expCond(iCond).path_iv = TSDtoIV(cfg_path, linpos_path);
+    end
+
     %% find intervals where rat is running
     spd = getLinSpd([],pos); % get speed (in "camera pixels per second")
 
-    cfg_spd = []; cfg_spd.method = 'raw'; cfg_spd.threshold = 5;
+    cfg_spd = []; cfg_spd.method = 'raw'; cfg_spd.threshold = 15;
     run_iv = TSDtoIV(cfg_spd,spd); % intervals with speed above 5 pix/s
 
     %% restrict (linearized) position data and spike data to desired intervals
     for iCond = 1:nCond
+        
+        fh = @(x) restrict(x,expCond(iCond).path_iv); % restrict S and linpos to reasonable path only
+        expCond(iCond) = structfunS(fh,expCond(iCond),{'S','linpos'});
 
         fh = @(x) restrict(x,run_iv); % restrict S and linpos to run times only
         expCond(iCond) = structfunS(fh,expCond(iCond),{'S','linpos'});
@@ -114,3 +128,17 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
         TC.(expCond(iCond).label).cp_bin = expCond(iCond).cp_bin;
     end
 end
+
+% %% Plot animal's positions where a given neurons fires each spike.
+% iC = 59;
+% 
+% cfg_spikes = {};
+% cfg_spikes.load_questionable_cells = 1;
+% S = LoadSpikes(cfg_spikes);
+% S = restrict(S, Metadata.taskvars.trial_iv);
+% S = restrict(S, run_iv);
+% 
+% spk_x = interp1(pos.tvec,getd(pos,'x'),S.t{iC},'linear');
+% spk_y = interp1(pos.tvec,getd(pos,'y'),S.t{iC},'linear');
+%  
+% h = plot(spk_x,spk_y,'.r');

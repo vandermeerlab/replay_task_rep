@@ -234,13 +234,41 @@ coord.chp_cm = chp_cm;
 %%
 save(FindFile('*Metadata.mat'), 'Metadata')
 
+%% Plot some example trajectories
+pos = LoadPos([]);
+pos_X = getd(pos,'x');
+pos_Y = getd(pos,'y');
+
+figure;
+plot(pos_X, pos_Y,'.','Color',[0.7 0.7 0.7],'MarkerSize',4); xlabel('x data'); ylabel('y data');
+view(90,90);
+hold on;
+
 %% Plot linearized position with trial data
-res_pos_cm = restrict(pos_cm, Metadata.taskvars.trial_iv_R); % restricted interval only
+res_pos = restrict(pos, Metadata.taskvars.trial_iv_R); % restricted interval only
+res_coord = coord.coordR;
 % use LinearizePos() (NOTE: both our position tsd and coords are in cm!)
 cfg = [];
-linpos = LinearizePos(cfg,res_pos_cm,coord.coordR_cm);
+cfg.debugMode = 1;
+[linpos] = LinearizePos(cfg,res_pos,res_coord);
 
-scatter(getd(res_pos_cm,'x'),getd(res_pos_cm,'y'), [], linpos.data); colorbar;
+linpos.data = linpos.data(2, :);
+n_all_samples = size(linpos.data, 2);
+
+% Exclude position data that deviate from linearized path too much
+cfg_path = []; cfg_path.method = 'raw'; cfg_path.threshold = 20; cfg_path.operation = '<';
+path_iv = TSDtoIV(cfg_path, linpos);
+
+[linpos] = LinearizePos([],res_pos,res_coord);
+
+linpos = restrict(linpos, path_iv);
+n_dev_samples = size(linpos.data, 2);
+res_pos = restrict(res_pos, path_iv);
+
+scatter(getd(res_pos,'x'),getd(res_pos,'y'), [], linpos.data); colorbar;
+title(sprintf('%d out of %d samples (%.2f%%) remaining with %d pixels away included.', ...
+    n_dev_samples, n_all_samples, n_dev_samples*100/n_all_samples, cfg_path.threshold))
+hold on;
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%                                                                     %%%
@@ -264,12 +292,12 @@ coord_std2 = StandardizeCoord(cfg,coord.coordR_cm,run_dist,'pointDist',3);
 
 %% make linearized position with standardized coords 
 cfg = [];
-linpos_std = LinearizePos(cfg,res_pos_cm,coord_std2);
+linpos_std = LinearizePos(cfg,res_pos_cm,coord_std);
 figure; plot(linpos_std,'.')
 
 % compare with "raw" coords
-lp1 = restrict(linpos,trial_iv_R.tstart(3),trial_iv_R.tend(3));
-lp2 = restrict(linpos_std,trial_iv_R.tstart(3),trial_iv_R.tend(3));
+lp1 = restrict(linpos,Metadata.taskvars.trial_iv_R.tstart(3),Metadata.taskvars.trial_iv_R.tend(3));
+lp2 = restrict(linpos_std,Metadata.taskvars.trial_iv_R.tstart(3),Metadata.taskvars.trial_iv_R.tend(3));
 
 figure;
 hold on;
