@@ -1,6 +1,9 @@
 LoadExpKeys;
-load(FindFile('*Metadata.mat'))
 evt = LoadEvents([]);
+
+load(FindFile('*Metadata.mat'))
+metadata = Metadata;
+clear Metadata;
 
 %% Quick check to remove empty label
 non_empty_idx = ~cellfun(@isempty, evt.label);
@@ -232,7 +235,7 @@ coord.chp_cm = chp_cm;
 % .mat file for later use
 
 %%
-save(FindFile('*Metadata.mat'), 'Metadata')
+save(FindFile('*metadata.mat'), 'metadata')
 
 %% Plot some example trajectories
 pos = LoadPos([]);
