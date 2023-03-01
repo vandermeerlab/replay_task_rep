@@ -1,11 +1,3 @@
-%%
-restoredefaultpath; % start with clean slate
-addpath(genpath('/Users/mac/Projects/vandermeerlab/code-matlab/shared'));
-addpath(genpath('/Users/mac/Projects/vandermeerlab/code-matlab/tasks/Alyssa_Tmaze'));
-addpath(genpath('/Users/mac/Projects/vandermeerlab/code-matlab/graveyard'));
-addpath(genpath('/Users/mac/Projects/seq_dep_replay/utils'));
-addpath(genpath('/Users/mac/Projects/seq_dep_replay/procedures'));
-
 %% Plot odd ratios against real world time
 SWR_data = actual_L_R_diff;
 SWR_data_L = NaN(size(SWR_data));
