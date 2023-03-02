@@ -4,7 +4,6 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
     cfg_def.use_Gupta_data = 0;
     cfg_def.use_matched_trials = 1;
     cfg_def.removeInterneurons = 0;
-    cfg_def.int_thres = 10;
     cfg_def.minSpikes = 25;
 
     mfun = mfilename;
@@ -13,13 +12,7 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
     % Get the data
     cd(session_path);
     LoadExpKeys();
-    if cfg.use_Gupta_data
-        load(FindFile('*Metadata.mat'));
-        metadata = Metadata;
-        ExpKeys.badTrials = [];
-    else
-        LoadMetadata();
-    end
+    LoadMetadata();
     pos = LoadPos([]);
 
     cfg_spikes = {};
@@ -28,12 +21,12 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
 
     if cfg.removeInterneurons
         channels = FindFiles('*.Ncs');
-        cfg_lfp = []; cfg_lfp.fc = {channels{1}};
+        cfg_lfp = []; cfg_lfp.fc = ExpKeys.goodSWR(1);
         lfp = LoadCSC(cfg_lfp);
 
-        cfg_int = []; cfg_int.showFRhist = 0;
-        cfg_int.max_fr = cfg.int_thres;
-        S = RemoveInterneuronsHC(cfg_int,S, lfp);
+%         cfg_int = []; cfg_int.showFRhist = 0;
+%         cfg_int.max_fr = cfg.int_thres;
+        S = RemoveInterneuronsHC([], S, lfp);
     end
 
     %% set up data structs for 2 experimental conditions -- see lab wiki for this task at:
@@ -47,7 +40,7 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
         [matched_left, matched_right] = GetMatchedTrials({}, metadata, ExpKeys);
         expCond(1).t = matched_left;
         expCond(2).t = matched_right;
-        tsxtart = [matched_left.tstart; matched_right.tstart];
+        tstart = [matched_left.tstart; matched_right.tstart];
         tend = [matched_left.tend; matched_right.tend];
     else
         expCond(1).t = metadata.taskvars.trial_iv_L; % previously stored trial start and end times for left trials
@@ -59,13 +52,11 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
     expCond(1).coord = metadata.coord.coordL; % previously user input idealized linear track
     expCond(2).coord = metadata.coord.coordR; % note, this is in units of "camera pixels", not cm
 
-    % % Remove cells with insufficient spikes
-    % S_matched = restrict(S, tstart, tend);
-
-    % spk_count = getSpikeCount([], S_matched);
-    % cell_keep_idx = spk_count >= cfg.minSpikes;
-
-    % S = SelectTS([], S, cell_keep_idx);
+    % remove cells with insufficient spikes
+    [S] = removeEmptyCells(S);
+    spk_count = getSpikeCount([], S);
+    cell_keep_idx = spk_count >= cfg.minSpikes;
+    S = SelectTS([], S, cell_keep_idx);
 
     expCond(1).S = S;
     expCond(2).S = S;
@@ -97,7 +88,7 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
     spd = getLinSpd([],pos); % get speed (in "camera pixels per second")
 
     cfg_spd = []; cfg_spd.method = 'raw'; cfg_spd.threshold = 15;
-    run_iv = TSDtoIV(cfg_spd,spd); % intervals with speed above 5 pix/s
+    run_iv = TSDtoIV(cfg_spd,spd); % intervals with speed above specified px/s
 
     %% restrict (linearized) position data and spike data to desired intervals
     for iCond = 1:nCond
@@ -120,12 +111,8 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
         % Temporal fix
         expCond(iCond).tc.tc(isnan(expCond(iCond).tc.tc)) = 0;
         [~,expCond(iCond).cp_bin] = histc(expCond(iCond).cp.data, expCond(iCond).tc.usr.binEdges);
-
-    end
-    
-    for iCond = 1:nCond
-        TC.(expCond(iCond).label).tc = expCond(iCond).tc.tc;
-        TC.(expCond(iCond).label).cp_bin = expCond(iCond).cp_bin;
+        
+        TC.(expCond(iCond).label) = expCond(iCond);
     end
 end
 

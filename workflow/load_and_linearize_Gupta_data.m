@@ -280,7 +280,7 @@ hold on;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % StandardizeCoord takes a raw coord file and returns a standardized coord. 
-% To do this we need the true path length of the used defined trajectory.
+% To do this we need the true path length of the user defined trajectory.
 % This value is usually measured by the experimented and stored in the 
 % ExpKeys.
 
