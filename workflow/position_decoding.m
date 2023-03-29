@@ -37,33 +37,27 @@ end
 
 Q = MakeQfromS(cfg_Q, decS);
 
-% raw Q-mat, to get nNeurons later
-cfg_Qraw = []; cfg_Qraw.smooth = []; cfg_Qraw.dt = cfg_Q.dt; cfg_Qraw.boxcar_size = cfg_Q.boxcar_size;
-Qraw = MakeQfromS(cfg_Qraw, decS);
-nNeurons = sum(Qraw.data >= 1);
-
 %% decode
 clear S;
 cfg_decode = [];
 cfg_decode.nMinSpikes = cfg.dt;
 cfg_decode.excludeMethod = 'frate';
-P = DecodeZ(cfg_decode, Q, TC.combined.tc); % full decoded probability distribution
+P = DecodeZ(cfg_decode, Q, enc_TC.combined.tc.tc); % full decoded probability distribution
 
 %% get MAP & plot output
 [~,map] = max(P.data);
 toss_idx = isnan(nansum(P.data));
 map(toss_idx) = NaN;
-combined_nBins = size(TC.combined.tc, 2);
 
 if cfg.plotOutput
     imagesc(P.tvec,1:size(P.data,1),P.data);
     hold on;
     plot(P.tvec,map,'.w');
-    plot(combined_tvec, combined_pos_idx,'og');
+    plot(enc_TC.combined.linpos.tvec, enc_TC.combined.tc.usr.pos_idx,'og');
     
     figure;
     subplot(221);
-    hist(map,combined_nBins );
+    hist(map,enc_TC.combined.nBins);
     title('MAP histogram');
     
     subplot(222);
@@ -73,9 +67,7 @@ if cfg.plotOutput
 end
 
 %% quantify decoding accuracy on RUN
-combined_tvec = [enc_TC.left.linpos.tvec, enc_TC.right.linpos.tvec];
-combined_pos_idx = [enc_TC.left.tc.usr.pos_idx, enc_TC.right.tc.usr.pos_idx + 100];
-trueZ = tsd(combined_tvec, combined_pos_idx); % true position in units of bins (as established by tuning curves)
+trueZ = tsd(enc_TC.combined.linpos.tvec, enc_TC.combined.tc.usr.pos_idx); % true position in units of bins (as established by tuning curves)
 cfg_err = []; cfg_err.mode = 'max';
 
 keep_idx = unique(nearest_idx3(trueZ.tvec, P.tvec)); % match up decoding with true positions

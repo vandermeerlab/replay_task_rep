@@ -5,6 +5,8 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
     cfg_def.use_matched_trials = 1;
     cfg_def.removeInterneurons = 0;
     cfg_def.minSpikes = 25;
+    cfg_def.trackExcludeStart = 50; % exclude this amount (in px) from start and end of track
+    cfg_def.trackExcludeEnd = 50;
 
     mfun = mfilename;
     cfg = ProcessConfig(cfg_def,cfg_in,mfun);
@@ -60,6 +62,7 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
 
     expCond(1).S = S;
     expCond(2).S = S;
+    expComb.S = S;
 
     %% linearize paths (snap x,y position samples to nearest point on experimenter-drawn idealized track)
     nCond = length(expCond);
@@ -90,9 +93,24 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
     cfg_spd = []; cfg_spd.method = 'raw'; cfg_spd.threshold = 15;
     run_iv = TSDtoIV(cfg_spd,spd); % intervals with speed above specified px/s
 
+    %% exclude positions at beginning and end of track
+    cfg_track1 = []; cfg_track1.method = 'raw'; cfg_track1.threshold = cfg.trackExcludeStart;
+    cfg_track2 = []; cfg_track2.method = 'raw'; cfg_track2.operation = '<';
+
+    for iCond = 1:nCond
+        expCond(iCond).track_iv1 = TSDtoIV(cfg_track1,expCond(iCond).linpos);
+        cfg_track2.threshold = max(expCond(iCond).linpos.data) - cfg.trackExcludeEnd;
+        expCond(iCond).track_iv2 = TSDtoIV(cfg_track2,expCond(iCond).linpos);
+    end
+
     %% restrict (linearized) position data and spike data to desired intervals
     for iCond = 1:nCond
-        
+%         fh = @(x) restrict(x, expCond(iCond).track_iv1); % restrict S and linpos with beginning and end of track excluded
+%         expCond(iCond) = structfunS(fh,expCond(iCond),{'S','linpos'});
+% 
+%         fh = @(x) restrict(x, expCond(iCond).track_iv2); % restrict S and linpos with beginning and end of track excluded
+%         expCond(iCond) = structfunS(fh,expCond(iCond),{'S','linpos'});
+
         fh = @(x) restrict(x,expCond(iCond).path_iv); % restrict S and linpos to reasonable path only
         expCond(iCond) = structfunS(fh,expCond(iCond),{'S','linpos'});
 
@@ -102,6 +120,11 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
         fh = @(x) restrict(x,expCond(iCond).t); % restrict S and linpos to specific trials (left/right)
         expCond(iCond) = structfunS(fh,expCond(iCond),{'S','linpos'});
     end
+
+    expComb.S = restrict(expComb.S, UnionIV([], expCond(1).path_iv, expCond(2).path_iv));
+    expComb.S = restrict(expComb.S, run_iv);
+    expComb.t = UnionIV([],expCond(1).t,expCond(2).t);
+    expComb.S = restrict(expComb.S, expComb.t);
 
     %% get tuning curves, see lab wiki at:
     % http://ctnsrv.uwaterloo.ca/vandermeerlab/doku.php?id=analysis:nsb2015:week12
@@ -114,6 +137,20 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
         
         TC.(expCond(iCond).label) = expCond(iCond);
     end
+    %%
+    temp = expCond(2).linpos;
+    temp.data = temp.data + 550;
+    % max(enc_TC.left.linpos.data);
+    expComb.linpos = UnionTSD([], expCond(1).linpos, temp);
+    expComb.linpos = restrict(expComb.linpos, expComb.t);
+
+    mn = min(expComb.linpos.data);
+    mx = max(expComb.linpos.data);
+    expComb.nBins = 200;
+    cfg_tc.binEdges{1} = linspace(mn,mx, expComb.nBins+1);
+
+    TC.combined = expComb;
+    TC.combined.tc = TuningCurves(cfg_tc, expComb.S, expComb.linpos);
 end
 
 % %% Plot animal's positions where a given neurons fires each spike.

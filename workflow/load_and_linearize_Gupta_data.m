@@ -2,8 +2,6 @@ LoadExpKeys;
 evt = LoadEvents([]);
 
 load(FindFile('*Metadata.mat'))
-metadata = Metadata;
-clear Metadata;
 
 %% Quick check to remove empty label
 non_empty_idx = ~cellfun(@isempty, evt.label);
@@ -235,7 +233,7 @@ coord.chp_cm = chp_cm;
 % .mat file for later use
 
 %%
-save(FindFile('*metadata.mat'), 'metadata')
+save(FindFile('*Metadata.mat'), 'metadata')
 
 %% Plot some example trajectories
 pos = LoadPos([]);
@@ -248,8 +246,8 @@ view(90,90);
 hold on;
 
 %% Plot linearized position with trial data
-res_pos = restrict(pos, Metadata.taskvars.trial_iv_R); % restricted interval only
-res_coord = coord.coordR;
+res_pos = restrict(pos, metadata.taskvars.trial_iv_R); % restricted interval only
+res_coord = metadata.coord.coordR;
 % use LinearizePos() (NOTE: both our position tsd and coords are in cm!)
 cfg = [];
 cfg.debugMode = 1;
@@ -271,6 +269,54 @@ res_pos = restrict(res_pos, path_iv);
 scatter(getd(res_pos,'x'),getd(res_pos,'y'), [], linpos.data); colorbar;
 title(sprintf('%d out of %d samples (%.2f%%) remaining with %d pixels away included.', ...
     n_dev_samples, n_all_samples, n_dev_samples*100/n_all_samples, cfg_path.threshold))
+hold on;
+
+%% find intervals where rat is running
+spd = getLinSpd([],pos); % get speed (in "camera pixels per second")
+
+res_pos = restrict(pos, metadata.taskvars.trial_iv_R); % restricted interval only
+res_coord = metadata.coord.coordR;
+[linpos] = LinearizePos([],res_pos,res_coord);
+n_all_samples = size(linpos.data, 2);
+
+cfg_spd = []; cfg_spd.method = 'raw'; cfg_spd.threshold = 15;
+run_iv = TSDtoIV(cfg_spd,spd); % intervals with speed above specified px/s
+
+spd_linpos = restrict(linpos, run_iv);
+n_spd_samples = size(spd_linpos.data, 2);
+spd_res_pos = restrict(res_pos, run_iv);
+
+scatter(getd(spd_res_pos,'x'),getd(spd_res_pos,'y'), [], spd_linpos.data); colorbar;
+hold on;
+
+title(sprintf('%d out of %d samples (%.2f%%) remaining', ...
+    n_spd_samples, n_all_samples, n_spd_samples*100/n_all_samples))
+hold on;
+
+
+%% exclude positions at beginning and end of track
+res_pos = restrict(pos, metadata.taskvars.trial_iv_R); % restricted interval only
+res_coord = metadata.coord.coordR;
+[linpos] = LinearizePos([],res_pos,res_coord);
+n_all_samples = size(linpos.data, 2);
+
+cfg_track1 = []; cfg_track1.method = 'raw'; cfg_track1.operation = '>'; cfg_track1.threshold = 50;
+cfg_track2 = []; cfg_track2.method = 'raw'; cfg_track2.operation = '<'; cfg_track2.threshold = max(linpos.data) - 50;
+
+track_iv1 = TSDtoIV(cfg_track1, linpos);
+track_iv2 = TSDtoIV(cfg_track2, linpos);
+
+ex_linpos = restrict(linpos, track_iv1);
+ex_linpos = restrict(ex_linpos, track_iv2);
+n_ex_samples = size(ex_linpos.data, 2);
+ex_res_pos = restrict(res_pos, track_iv1);
+ex_res_pos = restrict(ex_res_pos, track_iv2);
+
+scatter(getd(ex_res_pos,'x'),getd(ex_res_pos,'y'), [], ex_linpos.data); colorbar;
+hold on;
+
+title(sprintf('%d out of %d samples (%.2f%%) remaining', ...
+    n_ex_samples, n_all_samples, n_ex_samples*100/n_all_samples))
 hold on;
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

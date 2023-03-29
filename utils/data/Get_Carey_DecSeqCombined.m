@@ -279,7 +279,7 @@ expComb.fields = DetectPlaceCells1D([],expComb.tc.tc); % only used for plotting 
 
 if cfg.plotOutput
     figure;
-    imagesc(expCond(iCond).tc.tc);
+    imagesc(expComb.tc.tc);
 end
 
 %% Q-mat
@@ -342,10 +342,9 @@ this_Pscore.data = this_Pscore.data(:,keep_idx);
 [expComb.Perr,expComb.confMat] = DecodeErrorZ(cfg_err,this_Pscore,this_trueZ);
 
 if cfg.plotOutput
-    subplot(223);
     imagesc(expComb.confMat.full);
     caxis([0 0.1]);
-    
+
     hold on;
     h = plot([112 112],[1 223],'w');
     h2 = plot([1 223],[112 112],'w');
