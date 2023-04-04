@@ -42,7 +42,7 @@ clear S;
 cfg_decode = [];
 cfg_decode.nMinSpikes = cfg.dt;
 cfg_decode.excludeMethod = 'frate';
-P = DecodeZ(cfg_decode, Q, enc_TC.combined.tc.tc); % full decoded probability distribution
+P = DecodeZ(cfg_decode, Q, TC.combined.tc.tc); % full decoded probability distribution
 
 %% get MAP & plot output
 [~,map] = max(P.data);
@@ -53,11 +53,11 @@ if cfg.plotOutput
     imagesc(P.tvec,1:size(P.data,1),P.data);
     hold on;
     plot(P.tvec,map,'.w');
-    plot(enc_TC.combined.linpos.tvec, enc_TC.combined.tc.usr.pos_idx,'og');
+    plot(TC.combined.linpos.tvec, TC.combined.tc.usr.pos_idx,'og');
     
     figure;
     subplot(221);
-    hist(map,enc_TC.combined.nBins);
+    hist(map,TC.combined.nBins);
     title('MAP histogram');
     
     subplot(222);
@@ -67,7 +67,7 @@ if cfg.plotOutput
 end
 
 %% quantify decoding accuracy on RUN
-trueZ = tsd(enc_TC.combined.linpos.tvec, enc_TC.combined.tc.usr.pos_idx); % true position in units of bins (as established by tuning curves)
+trueZ = tsd(TC.combined.linpos.tvec, TC.combined.tc.usr.pos_idx); % true position in units of bins (as established by tuning curves)
 cfg_err = []; cfg_err.mode = 'max';
 
 keep_idx = unique(nearest_idx3(trueZ.tvec, P.tvec)); % match up decoding with true positions
@@ -83,4 +83,8 @@ if cfg.plotOutput
     hold on;
     h = plot([100 100],[1 200],'w');
     h2 = plot([1 200],[100 100],'w');
+    colorbar;
+    ylabel('actual bins')
+    xlabel('decoded bins')
+    set(gca,'FontSize',12)
 end

@@ -1,7 +1,12 @@
-LoadExpKeys;
-evt = LoadEvents([]);
-
+%%
+save(FindFile('*Metadata.mat'), 'metadata')
+metadata = Metadata;
 load(FindFile('*Metadata.mat'))
+
+%%
+LoadExpKeys();
+evt = LoadEvents([]);
+LoadMetadata();
 
 %% Quick check to remove empty label
 non_empty_idx = ~cellfun(@isempty, evt.label);
@@ -65,20 +70,21 @@ view(90,90);
 hold on;
 
 %% Get MS (trial start) position
+% Label it in this order: top left -> bottom left -> bottom right -> top right
 [MS_X, MS_Y] = ginput(4);
 plot(MS_X, MS_Y); hold on;
 
 %%
-Metadata.MS.x = [floor(min(MS_X(1:2))), ceil(max(MS_X(3:4)))];
-Metadata.MS.y = [floor(min(MS_Y(2:3))), ceil(max(MS_Y([1, 4])))];
+metadata.MS.x = [floor(min(MS_X(1:2))), ceil(max(MS_X(3:4)))];
+metadata.MS.y = [floor(min(MS_Y(2:3))), ceil(max(MS_Y([1, 4])))];
 
 %% Assign each position a label as 1 if in MS
 % Then we can use the difference between location labels to potential trial starts.
 % For example, -1 would be exiting MS.
 pos_trial = zeros(1, length(pos.data));
 for pos_i = 1:length(pos_trial)
-    if (pos_X(pos_i) > Metadata.MS.x(1) && pos_X(pos_i) < Metadata.MS.x(2))...
-        && (pos_Y(pos_i) > Metadata.MS.y(1) && pos_Y(pos_i) < Metadata.MS.y(2))
+    if (pos_X(pos_i) > metadata.MS.x(1) && pos_X(pos_i) < metadata.MS.x(2))...
+        && (pos_Y(pos_i) > metadata.MS.y(1) && pos_Y(pos_i) < metadata.MS.y(2))
         pos_trial(pos_i) = 1;
     end
 end
@@ -115,14 +121,17 @@ trial_iv = iv(trial_starts, sorted_reward_times);
 trial_iv_L = iv(trial_starts(L_idx), sorted_reward_times(L_idx));
 trial_iv_R = iv(trial_starts(R_idx), sorted_reward_times(R_idx));
 
-res_pos = restrict(pos, trial_iv_L); % restricted interval only
-plot(getd(res_pos,'x'),getd(res_pos,'y'),'r.');
+res_pos_L = restrict(pos, trial_iv_L); % restricted interval only
+plot(getd(res_pos_L,'x'),getd(res_pos_L,'y'),'r.');
+hold on;
+res_pos_R = restrict(pos, trial_iv_R); % restricted interval only
+plot(getd(res_pos_R,'x'),getd(res_pos_R,'y'),'b.');
 
 %% should now be able to use GetMatchedTrials()
-Metadata.taskvars.trial_iv = trial_iv;
-Metadata.taskvars.trial_iv_L = trial_iv_L;
-Metadata.taskvars.trial_iv_R = trial_iv_R;
-Metadata.taskvars.sequence = sequence;
+metadata.taskvars.trial_iv = trial_iv;
+metadata.taskvars.trial_iv_L = trial_iv_L;
+metadata.taskvars.trial_iv_R = trial_iv_R;
+metadata.taskvars.sequence = sequence;
 
 %% Now get the conversion factors using the function PosCon()
 
@@ -233,6 +242,7 @@ coord.chp_cm = chp_cm;
 % .mat file for later use
 
 %%
+metadata.coord = coord;
 save(FindFile('*Metadata.mat'), 'metadata')
 
 %% Plot some example trajectories
@@ -300,8 +310,8 @@ res_coord = metadata.coord.coordR;
 [linpos] = LinearizePos([],res_pos,res_coord);
 n_all_samples = size(linpos.data, 2);
 
-cfg_track1 = []; cfg_track1.method = 'raw'; cfg_track1.operation = '>'; cfg_track1.threshold = 50;
-cfg_track2 = []; cfg_track2.method = 'raw'; cfg_track2.operation = '<'; cfg_track2.threshold = max(linpos.data) - 50;
+cfg_track1 = []; cfg_track1.method = 'raw'; cfg_track1.operation = '>'; cfg_track1.threshold = 0;
+cfg_track2 = []; cfg_track2.method = 'raw'; cfg_track2.operation = '<'; cfg_track2.threshold = max(linpos.data) - 25;
 
 track_iv1 = TSDtoIV(cfg_track1, linpos);
 track_iv2 = TSDtoIV(cfg_track2, linpos);
@@ -339,14 +349,15 @@ coord_std = StandardizeCoord(cfg,coord.coordR_cm,run_dist);
 % we can also specify arguments for how we want the coord to be standardized
 coord_std2 = StandardizeCoord(cfg,coord.coordR_cm,run_dist,'pointDist',3);
 
-%% make linearized position with standardized coords 
+%% make linearized position with standardized coords
+res_pos_cm = restrict(pos_cm, metadata.taskvars.trial_iv_R); % restricted interval only
 cfg = [];
 linpos_std = LinearizePos(cfg,res_pos_cm,coord_std);
 figure; plot(linpos_std,'.')
 
 % compare with "raw" coords
-lp1 = restrict(linpos,Metadata.taskvars.trial_iv_R.tstart(3),Metadata.taskvars.trial_iv_R.tend(3));
-lp2 = restrict(linpos_std,Metadata.taskvars.trial_iv_R.tstart(3),Metadata.taskvars.trial_iv_R.tend(3));
+lp1 = restrict(linpos,metadata.taskvars.trial_iv_R.tstart(3),metadata.taskvars.trial_iv_R.tend(3));
+lp2 = restrict(linpos_std,metadata.taskvars.trial_iv_R.tstart(3),metadata.taskvars.trial_iv_R.tend(3));
 
 figure;
 hold on;
