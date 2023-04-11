@@ -77,6 +77,7 @@ Pscore.data = Pscore.data(:,keep_idx);
 [Perr, confMat] = DecodeErrorZ(cfg_err, Pscore, trueZ);
 
 if cfg.plotOutput
+    figure;
     imagesc(confMat.full);
     caxis([0 0.1]);
     

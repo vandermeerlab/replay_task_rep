@@ -1,8 +1,8 @@
 %%
-save(FindFile('*Metadata.mat'), 'metadata')
+load(FindFile('*Metadata.mat'));
 metadata = Metadata;
-load(FindFile('*Metadata.mat'))
-
+save(FindFile('*Metadata.mat'), 'metadata');
+clear metadata Metadata;
 %%
 LoadExpKeys();
 evt = LoadEvents([]);
@@ -63,10 +63,11 @@ sequence = all_labels(sort_idx);
 pos = LoadPos([]);
 pos_X = getd(pos,'x');
 pos_Y = getd(pos,'y');
+rot_angle = 90;
 
 figure;
 plot(pos_X, pos_Y,'.','Color',[0.7 0.7 0.7],'MarkerSize',4); xlabel('x data'); ylabel('y data');
-view(90,90);
+view(rot_angle, rot_angle);
 hold on;
 
 %% Get MS (trial start) position
@@ -122,10 +123,11 @@ trial_iv_L = iv(trial_starts(L_idx), sorted_reward_times(L_idx));
 trial_iv_R = iv(trial_starts(R_idx), sorted_reward_times(R_idx));
 
 res_pos_L = restrict(pos, trial_iv_L); % restricted interval only
-plot(getd(res_pos_L,'x'),getd(res_pos_L,'y'),'r.');
+plot(getd(res_pos_L,'x'),getd(res_pos_L,'y'),'r.', 'DisplayName','left');
 hold on;
 res_pos_R = restrict(pos, trial_iv_R); % restricted interval only
-plot(getd(res_pos_R,'x'),getd(res_pos_R,'y'),'b.');
+plot(getd(res_pos_R,'x'),getd(res_pos_R,'y'),'b.', 'DisplayName','right');
+legend();
 
 %% should now be able to use GetMatchedTrials()
 metadata.taskvars.trial_iv = trial_iv;
@@ -139,7 +141,7 @@ metadata.taskvars.sequence = sequence;
 % read the help documentation on PosCon for more intructions
 
 realTrackDims = [108 160]; % x width and y width in centimeters
-convFact = PosCon(pos,realTrackDims, 'rot', 90);
+convFact = PosCon(pos,realTrackDims, 'rot', rot_angle);
 
 % You should save convFact in ExpKeys
 %          ExpKeys.convFact = [xConvFact yConvFact];
@@ -153,7 +155,7 @@ cfg.convFact = convFact;
 pos_cm = LoadPos(cfg);
 figure; plot(getd(pos_cm,'x'),getd(pos_cm,'y'),'.','Color',[0.7 0.7 0.7],'MarkerSize',4);
 xlabel('x data'); ylabel('y data');
-view(90,90);
+view(rot_angle,rot_angle);
 title('Position in centimeters');
 hold on;
 
@@ -168,8 +170,8 @@ hold on;
 
 % let's get the idealized trajectories; MakeCoord() takes varargins that can
 % reorient your maze as you prefer to see it.
-coordL = MakeCoord(pos,'titl','Draw left trajectory, press enter when done', 'rot', 90); % CoordL is in units of pixels
-coordR = MakeCoord(pos,'titl','Draw right trajectory, press enter when done', 'rot', 90); % CoordR is in units of pixels
+coordL = MakeCoord(pos,'titl','Draw left trajectory, press enter when done', 'rot', rot_angle); % CoordL is in units of pixels
+coordR = MakeCoord(pos,'titl','Draw right trajectory, press enter when done', 'rot', rot_angle); % CoordR is in units of pixels
 
 
 %% plot the coords
@@ -178,15 +180,15 @@ subplot(121)
 hold on;
 plot(pos,'.','MarkerSize',4,'Color',[.7 .7 .7]);
 plot(coordL.coord(1,:),coordL.coord(2,:),'o','MarkerSize',3);
-xlabel('x data'); ylabel('y data'); title('Left coords in px');
-view(90,90);
+xlabel('x data'); ylabel('y data'); title('Left coordxs in px');
+view(rot_angle,rot_angle);
 
 subplot(122)
 hold on;
 plot(pos,'.','MarkerSize',4,'Color',[.7 .7 .7]);
 plot(coordR.coord(1,:),coordR.coord(2,:),'o','MarkerSize',3);
 xlabel('x data'); ylabel('y data'); title('Right coords in px');
-view(90,90);
+view(rot_angle,rot_angle);
 
 %% conver coords into cm
 % these coords should be converted to units of cm using the convFact you already
@@ -218,7 +220,7 @@ clear coordL coordL_cm coordR coordR_cm
 % script:
 
 figure; plot(getd(pos,'x'),getd(pos,'y'),'.','Color',[0.7 0.7 0.7],'MarkerSize',4); 
-view(90,90);
+view(rot_angle,rot_angle);
 hold on;
 plot(coord.coordL.coord(1,:),coord.coordL.coord(2,:),'ob'); 
 plot(coord.coordR.coord(1,:),coord.coordR.coord(2,:),'og'); title('Click choice point; press enter');
@@ -252,7 +254,7 @@ pos_Y = getd(pos,'y');
 
 figure;
 plot(pos_X, pos_Y,'.','Color',[0.7 0.7 0.7],'MarkerSize',4); xlabel('x data'); ylabel('y data');
-view(90,90);
+view(rot_angle,rot_angle);
 hold on;
 
 %% Plot linearized position with trial data
