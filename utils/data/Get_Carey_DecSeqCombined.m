@@ -383,7 +383,7 @@ if cfg.use_only_off_track_SWR
     off_track_iv = rest_iv;
     off_track_iv.tstart = [ExpKeys.prerecord(1); rest_iv.tstart; ExpKeys.postrecord(1)];
     off_track_iv.tend = [ExpKeys.prerecord(2); rest_iv.tend; ExpKeys.postrecord(2)];
-    evt = restrict(evt, off_track_iv)
+    evt = restrict(evt, off_track_iv);
 end
 
 % make Q-matrix based on events

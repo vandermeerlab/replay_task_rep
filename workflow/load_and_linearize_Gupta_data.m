@@ -117,11 +117,12 @@ end
 L_idx = cellfun(@(x) strcmp(x, 'L'), sequence);
 R_idx = cellfun(@(x) strcmp(x, 'R'), sequence);
 
-%% Plot trial data
+%% Extract trial information
 trial_iv = iv(trial_starts, sorted_reward_times);
 trial_iv_L = iv(trial_starts(L_idx), sorted_reward_times(L_idx));
 trial_iv_R = iv(trial_starts(R_idx), sorted_reward_times(R_idx));
 
+%% Plot trial data
 res_pos_L = restrict(pos, trial_iv_L); % restricted interval only
 plot(getd(res_pos_L,'x'),getd(res_pos_L,'y'),'r.', 'DisplayName','left');
 hold on;

@@ -1,5 +1,6 @@
 %% General configs
 cfg.load_questionable_cells = 1;
+cfg.removeInterneurons = 1;
 cfg.minSpikes = 25;
 cfg.dt = 0.1;
 cfg.Qdt = cfg.dt/5;
@@ -10,6 +11,13 @@ cfg.plotOutput = 1;
 %% load spike data
 please = []; please.load_questionable_cells = cfg.load_questionable_cells;
 S = LoadSpikes(please);
+
+if cfg.removeInterneurons
+    LoadExpKeys();
+    cfg_lfp = []; cfg_lfp.fc = ExpKeys.goodSWR(1);
+    lfp = LoadCSC(cfg_lfp);
+    S = RemoveInterneuronsHC([], S, lfp);
+end
 
 decS = S; % for decoding, this only gets selections by nSpikes, etc.
 

@@ -20,6 +20,14 @@ hold on;
 cfg_spikes = {};
 cfg_spikes.load_questionable_cells = 1;
 S = LoadSpikes(cfg_spikes);
+
+removeInterneurons = 1;
+if removeInterneurons
+    cfg_lfp = []; cfg_lfp.fc = ExpKeys.goodSWR(1);
+    lfp = LoadCSC(cfg_lfp);
+    S = RemoveInterneuronsHC([], S, lfp);
+end
+
 S = restrict(S, metadata.taskvars.trial_iv);
 S = restrict(S, run_iv);
 

@@ -22,7 +22,6 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
     S = LoadSpikes(cfg_spikes);
 
     if cfg.removeInterneurons
-        channels = FindFiles('*.Ncs');
         cfg_lfp = []; cfg_lfp.fc = ExpKeys.goodSWR(1);
         lfp = LoadCSC(cfg_lfp);
 
