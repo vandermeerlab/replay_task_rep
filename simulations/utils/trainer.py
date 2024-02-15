@@ -34,7 +34,7 @@ def train_MLP(model, inputs, targets, n_epochs, lr, wd_lambda=0):
   criterion = nn.MSELoss()
 
   init_weight_norms = []
-  for weight in dlnn_model.parameters():
+  for weight in model.parameters():
     init_weight_norms.append(torch.linalg.norm(weight))
 
   for i in range(n_epochs):
