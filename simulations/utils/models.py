@@ -53,22 +53,3 @@ class MLP(nn.Module):
     hid = F.relu(self.in_hid(x))  # Hidden activity
     out = self.hid_out(hid)  # Output (prediction)
     return out, hid
-
-  """
-  def initializer_(model, scale_ws):
-  """
-  In-place Re-initialization of weights
-
-  Args:
-    model: torch.nn.Module
-      PyTorch neural net model
-    gamma: float
-      Initialization scale
-
-  Returns:
-    Nothing
-  """
-  for w_i, weight in enumerate(model.parameters()):
-    n_out, n_in = weight.shape
-    nn.init.normal_(weight, mean=0.0, std=scale_ws[w_i])
-  """
