@@ -1,2 +1,2 @@
-# seq_dep_replay
-Project for understanding the sequential dependency in hippocampal replay content
+# replay_task_rep
+Project for investigating the role of replay in maintaining balanced and robust task representations
