@@ -1,3 +1,6 @@
+import numpy as np
+import torch
+
 def create_xor_dataset(x1, x2, y, n_repeats=50, noise_lev = 0.1):
   # Repeat the numbers from x1, x2, and y n_repeats times
   x1 = np.repeat(x1, n_repeats)
@@ -28,14 +31,4 @@ def create_xor_dataset(x1, x2, y, n_repeats=50, noise_lev = 0.1):
   # Combine X1 and X2
   X = torch.hstack([x1_torch, x2_torch])
 
-
-  # Split into training and testing
-  n_samples = X.shape[0]
-  split_index = int(np.ceil(n_samples * 0.8))
-
-  X_train = X[:split_index, :]
-  y_train = y_torch[:split_index]
-  X_test = X[split_index:, :]
-  y_test = y_torch[split_index:]
-
-  return X_train, y_train, X_test, y_test
+  return X, y
