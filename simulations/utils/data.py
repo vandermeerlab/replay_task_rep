@@ -29,6 +29,6 @@ def create_xor_dataset(x1, x2, y, n_repeats=50, noise_lev = 0.1):
   y_torch = torch.from_numpy(y).clone().view(-1, 1)
 
   # Combine X1 and X2
-  X = torch.hstack([x1_torch, x2_torch])
+  X_torch = torch.hstack([x1_torch, x2_torch])
 
-  return X, y
+  return X_torch, y_torch
