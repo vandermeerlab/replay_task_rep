@@ -38,9 +38,9 @@ end
 % get base file path where repo lives
 switch machinename
     case {'mac'} % add case for your machine
-        base_fp = '/Users/mac/Projects/seq_dep_replay';
+        base_fp = '/Users/mac/Projects/replay_task_rep/analysis';
     case {'PROMETHEUS'}
-        base_fp = 'C:\Users\mvdmlab\Documents\GitHub\seq_dep_replay';
+        base_fp = 'C:\Users\mvdmlab\Documents\GitHub\replay_task_rep\analysis';
 end
 
 if cfg.vandermeerlab
@@ -51,4 +51,3 @@ end
 
 % add to path
 addpath(genpath(cat(2,base_fp,filesep,'utils')));
-addpath(genpath(cat(2,base_fp,filesep,'procedures')));
