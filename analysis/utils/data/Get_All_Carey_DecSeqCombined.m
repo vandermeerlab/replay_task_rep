@@ -22,7 +22,7 @@ if proceed
     fd = sort(getTmazeDataPath(cfg));
     
     cfg_decSeq = [];
-    cfg_decSeq.removeInterneurons = 0;
+    cfg_decSeq.removeInterneurons = 1;
     cfg_decSeq.postCPonly = 0; % exclude central stem of T-maze up until the choice point?
     
     for iFD = length(fd):-1:1
