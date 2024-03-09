@@ -282,6 +282,8 @@ if cfg.plotOutput
     imagesc(expComb.tc.tc);
 end
 
+out.n_neurons = size(expComb.tc.tc, 1);
+
 %% Q-mat
 cfg_Q = [];
 cfg_Q.dt = cfg.Qdt;
