@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-def create_xor_dataset(x1, x2, y, n_repeats=50, noise_lev = 0.1):
+def create_xor_dataset(x1, x2, y, n_repeats=50, noise_lev = 0.1, require_shuffle=False):
   # Repeat the numbers from x1, x2, and y n_repeats times
   x1 = np.repeat(x1, n_repeats)
   x2 = np.repeat(x2, n_repeats)
@@ -12,16 +12,18 @@ def create_xor_dataset(x1, x2, y, n_repeats=50, noise_lev = 0.1):
   x2 = x2 + np.random.randn(x2.shape[0]) * noise_lev
 
   # Shuffle
-  index_shuffle = np.arange(x1.shape[0])
-  np.random.shuffle(index_shuffle)
+  if require_shuffle:
+    index_shuffle = np.arange(x1.shape[0])
+    np.random.shuffle(index_shuffle)
 
   x1 = x1.astype(np.float32)
   x2 = x2.astype(np.float32)
   y  = y.astype(np.float32)
 
-  x1 = x1[index_shuffle]
-  x2 = x2[index_shuffle]
-  y  = y [index_shuffle]
+  if require_shuffle:
+    x1 = x1[index_shuffle]
+    x2 = x2[index_shuffle]
+    y  = y [index_shuffle]
 
   # Convert data to tensors
   x1_torch = torch.from_numpy(x1).clone().view(-1, 1)

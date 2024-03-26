@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-def train_MLP(model, inputs, targets, n_epochs, lr, wd_lambda=0):
+def train_MLP(model, inputs, targets, n_epochs, lr, wd_lambda=0, noise_lev=0):
   """
   Training function
 
@@ -22,13 +22,17 @@ def train_MLP(model, inputs, targets, n_epochs, lr, wd_lambda=0):
       Learning rate
     wd_lambda: float
       Weight-decaying parameters
+    noise_lev: float
+      Noise level added to inputs
 
   Returns:
     losses: np.ndarray
       Record (evolution) of training loss
   """
-  losses = np.zeros(n_epochs)  # Loss records
-  weight_rel_changes = [np.zeros(n_epochs), np.zeros(n_epochs)]  # Relative changes of weights in input-hidden layer and hidden-output layer
+  # Loss records
+  losses = np.zeros(n_epochs)
+  # Relative changes of weights in input-hidden layer and hidden-output layer
+  weight_rel_changes = [np.zeros(n_epochs), np.zeros(n_epochs)]
 
   optimizer = optim.SGD(model.parameters(), lr=lr, weight_decay=wd_lambda)
   criterion = nn.MSELoss()
@@ -39,10 +43,16 @@ def train_MLP(model, inputs, targets, n_epochs, lr, wd_lambda=0):
 
   for i in range(n_epochs):
     optimizer.zero_grad()
-    predictions, hiddens = model(inputs)
+    noisy_inputs = inputs + torch.randn(inputs.shape) * noise_lev
+    predictions, _ = model(noisy_inputs)
     loss = criterion(predictions, targets)
     loss.backward()
     optimizer.step()
+
+    # task_predictions, _ = model(X)
+    # task_predictions = task_predictions.detach()
+    # task_loss = criterion(task_predictions, y)
+    # task_losses[i] = task_loss.item()
 
     # Logging (recordings)
     losses[i] = loss.item()
