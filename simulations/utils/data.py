@@ -2,6 +2,9 @@ import numpy as np
 import torch
 
 def create_xor_dataset(x1, x2, y, n_repeats=50, noise_lev = 0.1, require_shuffle=False):
+  """
+  Create dataset in the (x-or) task representation.
+  """
   # Repeat the numbers from x1, x2, and y n_repeats times
   x1 = np.repeat(x1, n_repeats)
   x2 = np.repeat(x2, n_repeats)

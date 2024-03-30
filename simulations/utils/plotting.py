@@ -3,19 +3,24 @@ import matplotlib.pyplot as plt
 from .constants import COLORS
 
 def plot_var(var_array,
+            running_avg = 0,
             param_labels=['rich', 'lazy'],
             colors = [COLORS['rich'], COLORS['lazy']],
             y_ticks=None,
             y_label="error",
             fig_size=(10, 5)):
   """
-  Plot time-varying variables function
+  Plotting time-varying variables
 
   Args:
     var_array: np.ndarray
       Log of variables (ex: MSE loss) per epoch
+    running_avg: int
+      window size for running average calculation
     param_labels: list
       List of parameter labels
+    other parameters:
+      plt figure parameters.
 
   Returns:
     Nothing
@@ -23,7 +28,11 @@ def plot_var(var_array,
   fig, axis = plt.subplots()
   fig.set_size_inches(fig_size)
   for p_i, param in enumerate(param_labels):
-    axis.plot(np.mean(var_array[p_i, :, :], 0), color=colors[p_i], label=param)
+    if running_avg > 0:
+      var = np.convolve(np.mean(var_array[p_i, :, :], 0), np.ones(running_avg)/running_avg, mode='valid')
+    else:
+      var = np.mean(var_array[p_i, :, :], 0)
+    axis.plot(var, color=colors[p_i], label=param)
 
   axis.set_xlabel("epoch")
   axis.set_ylabel(y_label)
@@ -33,22 +42,31 @@ def plot_var(var_array,
   axis.legend()
   return fig, axis
 
-def plot_task_rep(X, y, colors=[], marker_size=200):
-  fig, axis = plt.subplots()
-  for i in range(y.shape[0]):
-      if colors:
-         color = colors[i]
+def get_task_color(X):
+    colors = []
+    for x1, x2 in X:
+      if x1 == -1. and x2 == 1.:
+           colors.append(COLORS['left_fr'])
+      elif x1 == 1. and x2 == 1.:
+           colors.append(COLORS['right_fr'])
+      elif x1 == -1. and x2 == -1.:
+           colors.append(COLORS['left_wr'])
+      elif x1 == 1. and x2 == -1.:
+           colors.append(COLORS['right_wr'])
       else:
-        if X[i, 0] == -1. and X[i, 1] == 1.:
-           color = COLORS['left_fr']
-        elif X[i, 0] == 1. and X[i, 1] == 1.:
-           color = COLORS['right_fr']
-        elif X[i, 0] == -1. and X[i, 1] == -1.:
-           color = COLORS['left_wr']
-        elif X[i, 0] == 1. and X[i, 1] == -1.:
-           color = COLORS['right_wr']
+           colors.append('grey')
+    return colors
+
+def plot_task_rep(X, y, colors=[], marker_size=200):
+  """
+  Plotting data inputs in the task representation.
+  """
+  fig, axis = plt.subplots()
+  if not colors:
+     colors = get_task_color(X)
+  for i in range(y.shape[0]):
       marker = '^' if y[i] == 1 else 'v'
-      axis.scatter(X[i, 0], X[i, 1], c = color, marker=marker, s=marker_size)
+      axis.scatter(X[i, 0], X[i, 1], c = colors[i], marker=marker, s=marker_size)
 
   axis.set_xlim(-1.5, 1.5)
   axis.set_xticks([-1, 1])
@@ -60,6 +78,9 @@ def plot_task_rep(X, y, colors=[], marker_size=200):
   return fig, axis
 
 def plot_hidden_in(X, axis):
+  """
+  Plotting input weights of the hidden layer units.
+  """
   axis.scatter(X[:, 0], X[:, 1], color=COLORS['hidden_in'])
   axis.set_xlabel('input weights $\it{i}$')
   axis.set_ylabel('input weights $\it{j}$')
@@ -71,6 +92,9 @@ def plot_hidden_in(X, axis):
   return axis
 
 def plot_hidden_out(X, axis):
+  """
+  Plotting output weights of the hidden layer units.
+  """
   axis.scatter(np.arange(X.shape[1]), X[0], color=COLORS['hidden_out'])
   axis.set_xlabel('unit')
   axis.set_ylabel('output weights')
@@ -78,3 +102,22 @@ def plot_hidden_out(X, axis):
   axis.set_yticks([-0.2, 0, 0.2])
 
   return axis
+
+def plot_3d_embedding(X, y, embedding):
+  fig = plt.figure()
+  fig.set_size_inches(8, 8)
+  axis = fig.add_subplot(111, projection='3d')
+
+  colors = get_task_color(X)
+  for i in range(X.shape[0]):
+      marker = '^' if y[i] == 1 else 'v'
+      axis.scatter(embedding[i, 0], embedding[i, 1], embedding[i, 2], c=colors[i], marker=marker, s=200)
+
+  axis.set_xlabel('PC1')
+  axis.set_ylabel('PC2')
+  axis.set_zlabel('PC3')
+  axis.set_xticks([-3, 0, 3])
+  axis.set_yticks([-3, 0, 3])
+  axis.set_zticks([-3, 0, 3])
+
+  return fig, axis
