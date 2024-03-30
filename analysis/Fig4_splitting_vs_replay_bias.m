@@ -9,6 +9,19 @@ avg_preCP_correct = (left_preCP_correct + right_preCP_correct) / 2;
 % avg_postCP_correct = (left_postCP_correct + right_postCP_correct) / 2;
 % avg_entire_correct = (avg_preCP_correct + avg_postCP_correct) / 2;
 
+n_neurons = data.all.all.n_neurons;
+L_FR_prop = data.all.all.L_FR_prop;
+R_FR_prop = data.all.all.R_FR_prop;
+FR_zscore = data.all.all.FR_zscore;
+FR_diff_zscore = data.all.all.FR_diff_zscore;
+FR_diff_prop = data.all.all.FR_diff_prop;
+FR_diff = data.all.all.FR_diff;
+% mean_FR_diff = data.all.all.mean_FR_diff;
+% mean_FR_corr = data.all.all.mean_FR_corr;
+% median_FR_diff = data.all.all.median_FR_diff;
+% median_FR_corr = data.all.all.median_FR_corr;
+% norm_FR_diff = data.all.all.norm_FR_diff;
+
 %%
 x = avg_preCP_correct;
 y = replay_bias_scores;
@@ -24,7 +37,27 @@ plot(x, predicted_bias, '--', 'Color', [198/255 113/255 113/255], 'LineWidth', 2
 
 xlabel('splitter strength')
 ylabel('replay bias')
-title(['r = ', num2str(bias_corr(2, 1)), '; p-value = ', num2str(p_val(2, 1))])
+% title(['r = ', num2str(bias_corr(2, 1)), '; p-value = ', num2str(p_val(2, 1))])
+title(['r = ', num2str(bias_corr(2, 1))])
+set(gca, 'FontSize', 24)
+
+%%
+x = FR_diff;
+y = replay_bias_scores;
+
+figure;
+p = polyfit(x, y, 1);
+predicted_bias = polyval(p, x);
+
+[bias_corr, p_val] = corrcoef(x, y);
+scatter(x, y, 'filled', 'MarkerFaceColor', [105/255 105/255 105/255]);
+hold on;
+plot(x, predicted_bias, '--', 'Color', [198/255 113/255 113/255], 'LineWidth', 2); 
+
+xlabel('FR diff. between L and R')
+ylabel('replay bias')
+% title(['r = ', num2str(bias_corr(2, 1)), '; p-value = ', num2str(p_val(2, 1))])
+title(['r = ', num2str(bias_corr(2, 1))])
 set(gca, 'FontSize', 24)
 
 %%

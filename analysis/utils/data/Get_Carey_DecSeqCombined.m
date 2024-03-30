@@ -283,6 +283,112 @@ if cfg.plotOutput
 end
 
 out.n_neurons = size(expComb.tc.tc, 1);
+% left_TC = expComb.tc.tc(:, 1:expCond(iCond).cp_bin);
+% right_TC = expComb.tc.tc(:, cfg.nBins+1:cfg.nBins+expCond(iCond).cp_bin);
+% 
+% mean_L_FR = mean(left_TC, 2, "omitnan");
+% mean_R_FR = mean(right_TC, 2, "omitnan");
+% out.mean_L_FR = mean_L_FR;
+% out.mean_R_FR = mean_R_FR;
+% 
+% [mean_FR_corr, ~] = corrcoef(out.mean_L_FR, out.mean_R_FR);
+% out.mean_corr = mean_FR_corr(2, 1);
+
+% figure;
+% subplot(1, 3, 1);
+% scatter(mean_L_FR, mean_R_FR, 'filled', 'MarkerFaceColor', [105/255 105/255 105/255]);
+% xlabel('mean FR on L'); ylabel('mean FR on R')
+% title(['r = ', num2str(corr(2, 1)), '; p-value = ', num2str(p_val(2, 1))])
+
+% out.median_L_FR = median(left_TC, 2, "omitnan");
+% out.median_R_FR = median(right_TC, 2, "omitnan");
+% [median_FR_corr, ~] = corrcoef(out.median_L_FR, out.median_R_FR);
+% out.median_corr = median_FR_corr(2, 1);
+
+% subplot(1, 3, 2);
+% scatter(out.median_L_FR, out.median_R_FR, 'filled', 'MarkerFaceColor', [105/255 105/255 105/255]);
+% xlabel('median FR on L'); ylabel('median FR on R')
+% title(['r = ', num2str(corr(2, 1)), '; p-value = ', num2str(p_val(2, 1))])
+
+% out.norm_L_FR = normalize(mean_L_FR, 'range');
+% out.norm_R_FR = normalize(mean_R_FR, 'range');
+
+% subplot(1, 3, 3);
+% scatter(out.norm_L_FR, out.norm_R_FR, 'filled', 'MarkerFaceColor', [105/255 105/255 105/255]);
+% xlabel('norm. FR on L'); ylabel('norm. FR on R')
+% [corr, p_val] = corrcoef(out.norm_L_FR, out.norm_R_FR);
+% title(['r = ', num2str(corr(2, 1)), '; p-value = ', num2str(p_val(2, 1))])
+% 
+% out.max_L_FR = max(left_TC, [], 2, "omitnan");
+% out.max_R_FR = max(right_TC, [], 2, "omitnan");
+% [max_FR_corr, ~] = corrcoef(out.max_L_FR, out.max_R_FR);
+% out.max_FR_corr = max_FR_corr(2, 1);
+
+%% Get firing rates for left and right trials before the choice points
+
+trial_nums = length(left.tstart) + length(right.tstart);
+avg_FR_per_trial = zeros(length(expComb.S.t), trial_nums);
+
+for iCond = 1:nCond
+    cfg_pre_cp = []; cfg_pre_cp.method = 'raw'; cfg_pre_cp.operation = '<';
+    cfg_pre_cp.threshold = expCond(iCond).cp.data;
+
+    pre_cp_iv = TSDtoIV(cfg_pre_cp, expCond(iCond).linpos);
+    for t_i = 1:length(pre_cp_iv.tstart)
+        pre_cp_tstart = pre_cp_iv.tstart(t_i);
+        pre_cp_tend = pre_cp_iv.tend(t_i);
+        pre_cp_S = restrict(expComb.S, pre_cp_tstart, pre_cp_tend);
+        trial_i = (iCond - 1) * (trial_nums / 2) + t_i;
+        for n_i = 1:length(expComb.S.t)
+            avg_FR_per_trial(n_i, trial_i) = length(pre_cp_S.t{n_i}) / (pre_cp_tend - pre_cp_tstart);
+        end
+    end
+end
+
+% figure; imagesc(avg_FR_per_trial); colorbar;
+% xlabel('trial'); ylabel('neurons')
+
+L_FR = mean(avg_FR_per_trial(:, 1:trial_nums/2), 2);
+R_FR = mean(avg_FR_per_trial(:, trial_nums/2+1:end), 2);
+FR_diff = abs(L_FR - R_FR);
+out.FR_diff = FR_diff;
+% figure; imagesc([L_FR, R_FR, FR_diff]); colorbar;
+
+%% Comparing FR of left and right with shuffles
+
+FR_n_shuffles = 1000;
+shuf_L_FR = zeros(length(expComb.S.t), FR_n_shuffles);
+shuf_R_FR = zeros(length(expComb.S.t), FR_n_shuffles);
+shuf_FR_diff = zeros(length(expComb.S.t), FR_n_shuffles);
+
+for shuf_i = 1:FR_n_shuffles
+    rand_indices = randperm(trial_nums);
+    shuf_FR_per_trial = avg_FR_per_trial(:, rand_indices);
+    s_L_FR = mean(shuf_FR_per_trial(:, 1:trial_nums/2), 2);
+    s_R_FR = mean(shuf_FR_per_trial(:, trial_nums/2+1:end), 2);
+    shuf_L_FR(:, shuf_i) = s_L_FR;
+    shuf_R_FR(:, shuf_i) = s_R_FR;
+    shuf_FR_diff(:, shuf_i) = abs(s_L_FR - s_R_FR);
+end
+
+% figure; imagesc([shuf_FR_diff]); colorbar;
+
+L_FR_zscore = (L_FR - mean(shuf_L_FR, 2, 'omitnan')) ./ std(shuf_L_FR, 0, 2, 'omitnan');
+R_FR_zscore = (R_FR - mean(shuf_R_FR, 2, 'omitnan')) ./ std(shuf_R_FR, 0, 2, 'omitnan');
+FR_diff_zscore = (FR_diff - mean(shuf_FR_diff, 2, 'omitnan')) ./ std(shuf_FR_diff, 0, 2, 'omitnan');
+
+out.L_FR_zscore = L_FR_zscore;
+out.R_FR_zscore = R_FR_zscore;
+out.FR_zscore = (abs(L_FR_zscore) + abs(R_FR_zscore)) / 2;
+out.FR_diff_zscore = FR_diff_zscore;
+
+% figure; scatter(L_FR_zscore, R_FR_zscore, 'filled');
+% xlabel('left FR zscore'); ylabel('right FR zscore');
+% title(['FR zscore: ', num2str(median(out.FR_zscore, 'omitnan'))]);
+% 
+% figure; scatter(FR_diff, FR_diff_zscore, 'filled');
+% xlabel('FR diff'); ylabel('FR diff zscore');
+% title(['FR diff zscore: ', num2str(median(abs(out.FR_diff_zscore), 'omitnan'))]);
 
 %% Q-mat
 cfg_Q = [];
