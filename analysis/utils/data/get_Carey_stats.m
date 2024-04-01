@@ -195,15 +195,6 @@ end
 for i = 1:length(cfg.sess)
     sess_i = cfg.sess(i);
     data.all.all.n_neurons(i) = out{sess_i}.n_neurons;
-    data.all.all.FR_zscore(i) = median(out{sess_i}.FR_zscore, 'omitnan');
-    data.all.all.L_FR_prop(i) = sum(abs(out{sess_i}.L_FR_zscore) > 2) / length(out{sess_i}.FR_zscore);
-    data.all.all.R_FR_prop(i) = sum(abs(out{sess_i}.R_FR_zscore) > 2) / length(out{sess_i}.FR_zscore);
-    data.all.all.FR_diff_zscore(i) = median(abs(out{sess_i}.FR_diff_zscore), 'omitnan');
-    data.all.all.FR_diff_prop(i) = sum(abs(out{sess_i}.FR_diff_zscore) > 2.) / length(out{sess_i}.FR_zscore);
     data.all.all.FR_diff(i) = mean(out{sess_i}.FR_diff, 'omitnan');
-%     data.all.all.mean_FR_diff(i) = mean(abs(out{sess_i}.mean_L_FR - out{sess_i}.mean_R_FR));
-%     data.all.all.mean_FR_corr(i) = out{sess_i}.mean_corr;
-%     data.all.all.median_FR_diff(i) = mean(abs(out{sess_i}.median_L_FR - out{sess_i}.median_R_FR));
-%     data.all.all.median_FR_corr(i) = out{sess_i}.median_corr;
-%     data.all.all.norm_FR_diff(i) = mean(abs(out{sess_i}.norm_L_FR - out{sess_i}.norm_R_FR));
+    data.all.all.FR_diff_zscore(i) = median(abs(out{sess_i}.FR_diff_zscore), 'omitnan');
 end
