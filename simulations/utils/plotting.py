@@ -4,6 +4,7 @@ from .constants import COLORS
 
 def plot_var(var_array,
             running_avg = 0,
+            epoch_start = 0,
             param_labels=['rich', 'lazy'],
             colors = [COLORS['rich'], COLORS['lazy']],
             y_ticks=None,
@@ -32,11 +33,11 @@ def plot_var(var_array,
       var = np.convolve(np.mean(var_array[p_i, :, :], 0), np.ones(running_avg)/running_avg, mode='valid')
     else:
       var = np.mean(var_array[p_i, :, :], 0)
-    axis.plot(var, color=colors[p_i], label=param)
+    axis.plot(np.arange(epoch_start, var.shape[0]+epoch_start), var, color=colors[p_i], label=param)
 
   axis.set_xlabel("epoch")
   axis.set_ylabel(y_label)
-  axis.set_xticks([0, 2500, 5000])
+  axis.set_xticks(np.array([0, 2500, 5000]) + epoch_start)
   if y_ticks:
       axis.set_yticks(y_ticks)
   axis.legend()
