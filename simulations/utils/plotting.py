@@ -117,8 +117,8 @@ def plot_3d_embedding(X, y, embedding):
   axis.set_xlabel('PC1')
   axis.set_ylabel('PC2')
   axis.set_zlabel('PC3')
-  axis.set_xticks([-3, 0, 3])
-  axis.set_yticks([-3, 0, 3])
-  axis.set_zticks([-3, 0, 3])
+  axis.set_xticks([-15, 0, 15])
+  axis.set_yticks([-15, 0, 15])
+  axis.set_zticks([-15, 0, 15])
 
   return fig, axis
