@@ -43,28 +43,22 @@ scatter(x, y, 'filled', 'MarkerFaceColor', [105/255 105/255 105/255]);
 hold on;
 plot(x, predicted_bias, '--', 'Color', [198/255 113/255 113/255], 'LineWidth', 2); 
 
+xt = 0.5:0.25:1.5;
+xtl = {0.5, '', 1., '', 1.5};
+xpad = 0.25;
+xlim = [xt(1)-xpad xt(end)+xpad];
+
+yt = -1:0.5:1;
+ytl = {-1., '', 0., '', 1.};
+ypad = 0.35;
+ylim = [yt(1) yt(end)+ypad];
+
 xlabel('$\left|FR_{left} - FR_{right}\right|$ ', 'Interpreter','latex')
 ylabel('replay bias')
 % title(['r = ', num2str(bias_corr(2, 1)), '; p-value = ', num2str(p_val(2, 1))])
 title(['r = ', num2str(bias_corr(2, 1))])
-set(gca, 'FontSize', 24)
-
-%%
-avg_correct_alls = {avg_preCP_correct, avg_postCP_correct, avg_entire_correct};
-accuracy_titles = {'pre-CP', 'post-CP', 'entire'};
-for a_i = 1:length(avg_correct_alls)
-    figure;
-    avg_correct = avg_correct_alls{a_i};
-    scatter(avg_correct(food_idx), -data.all.all.median_z(food_idx), 'filled', 'red');
-    hold on;
-    scatter(avg_correct(water_idx), data.all.all.median_z(water_idx), 'filled', 'blue');
-    xlabel('Decoding accuracy')
-    ylabel('opposite-to-behavior bias in replay')
-    legend({'food-restricted', 'water-restricted'})
-%     xlim([0.4, 1])
-    title(accuracy_titles{a_i})
-    set(gca, 'FontSize', 14)
-end
+set(gca, 'XTick', xt, 'YTick', yt, 'YTickLabel', ytl, ...
+    'XTickLabel', xtl, 'XLim', xlim, 'YLim', ylim, 'FontSize', 30)
 
 %% replay bias per subject
 subj_ids = {'R042', 'R044', 'R50', 'R064'};
