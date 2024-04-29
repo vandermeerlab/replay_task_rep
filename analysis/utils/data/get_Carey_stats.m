@@ -3,7 +3,7 @@ rng('default');
 %% L vs R classification of run data (Figure S2b)
 % first, grab relevant fields from output structure
 cfg = []; cfg.sess = [2:6 10:11 13:24];
-cfg.fn = fieldnames(out{1}); cfg.fn = cfg.fn(7:18); % relevant fields are the first 12 names
+cfg.fn = fieldnames(out{1}); cfg.fn = cfg.fn(4:15); % relevant fields are the first 12 names
 
 for iF = 1:length(cfg.fn)
    

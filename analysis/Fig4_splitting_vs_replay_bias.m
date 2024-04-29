@@ -24,11 +24,22 @@ scatter(x, y, 'filled', 'MarkerFaceColor', [105/255 105/255 105/255]);
 hold on;
 plot(x, predicted_bias, '--', 'Color', [198/255 113/255 113/255], 'LineWidth', 2); 
 
-xlabel('splitter strength')
+xt = 0.4:0.15:1;
+xtl = {0.4, '', 0.7, '', 1};
+xpad = 0;
+xlim = [xt(1)-xpad xt(end)+xpad];
+
+yt = -1:0.5:1.5;
+ytl = {-1., '', 0., '', 1, ''};
+ypad = 0.25;
+ylim = [yt(1)-ypad yt(end)+ypad];
+
+xlabel('ensemble splitter strength')
 ylabel('replay bias')
 % title(['r = ', num2str(bias_corr(2, 1)), '; p-value = ', num2str(p_val(2, 1))])
 title(['r = ', num2str(bias_corr(2, 1))])
-set(gca, 'FontSize', 24)
+set(gca, 'XTick', xt, 'YTick', yt, 'YTickLabel', ytl, ...
+    'XTickLabel', xtl, 'XLim', xlim, 'YLim', ylim, 'FontSize', 30)
 
 %%
 x = FR_diff;
@@ -48,10 +59,10 @@ xtl = {0.5, '', 1., '', 1.5};
 xpad = 0.25;
 xlim = [xt(1)-xpad xt(end)+xpad];
 
-yt = -1:0.5:1;
-ytl = {-1., '', 0., '', 1.};
-ypad = 0.35;
-ylim = [yt(1) yt(end)+ypad];
+yt = -1:0.5:1.5;
+ytl = {-1., '', 0., '', 1, ''};
+ypad = 0.25;
+ylim = [yt(1)-ypad yt(end)+ypad];
 
 xlabel('$\left|FR_{left} - FR_{right}\right|$ ', 'Interpreter','latex')
 ylabel('replay bias')
