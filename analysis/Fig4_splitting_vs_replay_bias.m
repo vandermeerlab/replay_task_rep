@@ -1,19 +1,24 @@
 food_idx = ~logical(data.all.all.this_type);
 water_idx = logical(data.all.all.this_type);
 
-replay_bias_scores = zeros(length(data.all.all.median_z), 1);
-replay_bias_scores(food_idx) = -data.all.all.median_z(food_idx);
-replay_bias_scores(water_idx) = data.all.all.median_z(water_idx);
+replay_bias_zs = zeros(length(data.all.all.median_z), 1);
+replay_bias_zs(food_idx) = -data.all.all.median_z(food_idx);
+replay_bias_zs(water_idx) = data.all.all.median_z(water_idx);
+
+replay_bias_prop_sig = zeros(length(data.all.all.fracL_evt), 1);
+replay_bias_prop_sig(food_idx) = data.all.all.fracR_evt(food_idx);
+replay_bias_prop_sig(water_idx) = data.all.all.fracL_evt(water_idx);
 
 avg_preCP_correct = (left_preCP_correct + right_preCP_correct) / 2;
 
 n_neurons = data.all.all.n_neurons;
 FR_diff = data.all.all.FR_diff;
-FR_diff_zscore = data.all.all.FR_diff_zscore;
+% FR_diff_zscore = data.all.all.FR_diff_zscore;
+% rep_dist = data.all.all.rep_dist;
 
 %%
 x = avg_preCP_correct;
-y = replay_bias_scores;
+y = replay_bias_zs;
 
 figure;
 p = polyfit(x, y, 1);
@@ -43,7 +48,7 @@ set(gca, 'XTick', xt, 'YTick', yt, 'YTickLabel', ytl, ...
 
 %%
 x = FR_diff;
-y = replay_bias_scores;
+y = replay_bias_zs;
 
 figure;
 p = polyfit(x, y, 1);

@@ -283,6 +283,8 @@ if cfg.plotOutput
 end
 
 out.n_neurons = size(expComb.tc.tc, 1);
+out.tc = expComb.tc;
+out.cp_bin = expCond(iCond).cp_bin;
 
 %% Get firing rates for left and right trials before the choice points
 

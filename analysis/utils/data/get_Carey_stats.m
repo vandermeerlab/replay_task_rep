@@ -3,7 +3,7 @@ rng('default');
 %% L vs R classification of run data (Figure S2b)
 % first, grab relevant fields from output structure
 cfg = []; cfg.sess = [2:6 10:11 13:24];
-cfg.fn = fieldnames(out{1}); cfg.fn = cfg.fn(4:15); % relevant fields are the first 12 names
+cfg.fn = fieldnames(out{1}); cfg.fn = cfg.fn(6:17); % relevant fields are the first 12 names
 
 for iF = 1:length(cfg.fn)
    
@@ -116,14 +116,13 @@ for iSess = 1:length(cfg.sess)
         end
         
         % get the data of interest
-        nL = sum(this_dataR.shuf_perc_odds >= 1-cfg.cutoff); % odds are log(pL/pR) so left means big numbers vs. shuffle
-        nR = sum(this_dataR.shuf_perc_odds <= cfg.cutoff); % odds are log(pL/pR) so right means small numbers vs. shuffle
+        nL = nansum(this_dataR.shuf_perc_odds >= 1-cfg.cutoff); % odds are log(pL/pR) so left means big numbers vs. shuffle
+        nR = nansum(this_dataR.shuf_perc_odds <= cfg.cutoff); % odds are log(pL/pR) so right means small numbers vs. shuffle
         nE = length(this_dataR.tvec);
               
-        fracL_all = nL/nE; fracR_all = nR/nE;  % fraction of events (over all events)
         fracL_evt = nL/(nL+nR); fracR_evt = nR/(nL+nR);  % fraction of events (signif events only)
         
-        median_z = nanmedian(this_dataR.shuf_z_odds); % median z-score      
+        median_z = nanmedian(this_dataR.shuf_z_odds); % median z-score
         median_perc = nanmedian(this_dataR.shuf_perc_odds);  % median percentile vs. shuffle
         
         % append to big data structure
@@ -196,5 +195,27 @@ for i = 1:length(cfg.sess)
     sess_i = cfg.sess(i);
     data.all.all.n_neurons(i) = out{sess_i}.n_neurons;
     data.all.all.FR_diff(i) = mean(out{sess_i}.FR_diff, 'omitnan');
-    data.all.all.FR_diff_zscore(i) = median(abs(out{sess_i}.FR_diff_zscore), 'omitnan');
+%     data.all.all.FR_diff_zscore(i) = median(abs(out{sess_i}.FR_diff_zscore), 'omitnan');
 end
+
+% %% perform PCA and compute representational distance
+% num_pcs = 10;
+% for i = 1:length(cfg.sess)
+%     sess_i = cfg.sess(i);
+%     pca_input = out{sess_i}.tc.tc;
+%     pca_mean = nanmean(pca_input, 2);
+%     pca_input_centered = pca_input - pca_mean;
+%     pca_input_centered(isnan(pca_input_centered)) = 0;
+% 
+%     % PCA
+%     [U, S, V] = svd(pca_input_centered);
+%     [eigvecs] = U(:, 1:num_pcs);
+%     pca_projected = eigvecs' * pca_input_centered;
+% 
+%     % Compute L vs. R distance in embedding space
+%     cp_bin = out{sess_i}.cp_bin;
+%     div = ceil(size(pca_projected, 2)/2);
+%     pca_L = pca_projected(:, 1:cp_bin);
+%     pca_R = pca_projected(:, div:div+cp_bin-1);
+%     data.all.all.rep_dist(i) = sum(sqrt((pca_L - pca_R).^2), 'all') / numel(pca_L);
+% end
