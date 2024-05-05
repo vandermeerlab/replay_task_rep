@@ -10,7 +10,7 @@ def plot_var(var_array,
             y_ticks=None,
             y_tick_labels=[],
             y_label="error",
-            fig_size=(10, 5)):
+            fig_size=(8, 5)):
   """
   Plotting time-varying variables
 
@@ -48,7 +48,7 @@ def plot_var(var_array,
   axis.legend()
   return fig, axis
 
-def plot_task_rep(X, y, colors=[], markers=[], marker_size=200):
+def plot_task_inputs(X, y, colors=[], markers=[], marker_size=200):
   """
   Plotting data inputs in the task representation.
   """
@@ -73,13 +73,13 @@ def plot_task_rep(X, y, colors=[], markers=[], marker_size=200):
 
   return fig, axis
 
-def plot_hidden_in(X, axis):
+def plot_hidden_in(X, axis, color):
   """
   Plotting input weights of the hidden layer units.
   """
-  axis.scatter(X[:, 0], X[:, 1], color=COLORS['hidden_in'])
-  axis.set_xlabel('input weights $\it{i}$')
-  axis.set_ylabel('input weights $\it{j}$')
+  axis.scatter(X[:, 0], X[:, 1], color=color)
+  axis.set_xlabel('input weights $W^{in}_{i}}$')
+  axis.set_ylabel('input weights $W^{in}_{j}}$')
   axis.set_xlim(-0.5, 0.5)
   axis.set_ylim(-0.5, 0.5)
   axis.set_xticks([-0.4, -0.2, 0, 0.2, 0.4])
@@ -89,16 +89,16 @@ def plot_hidden_in(X, axis):
 
   return axis
 
-def plot_hidden_out(X, axis):
+def plot_hidden_out(X, axis, color):
   """
   Plotting output weights of the hidden layer units.
   """
-  axis.scatter(np.arange(X.shape[1]), X[0], color=COLORS['hidden_out'])
+  axis.scatter(np.arange(X.shape[1]), X[0], color=color)
   axis.set_xlabel('unit')
   axis.set_xlim(0, 500)
   axis.set_xticks([0, 125, 250, 375, 500])
   axis.set_xticklabels([0, None, 250, None, 500])
-  axis.set_ylabel('output weights')
+  axis.set_ylabel('output weights $W^{out}$')
   axis.set_ylim(-0.25, 0.25)
   axis.set_yticks([-0.2, -0.1, 0, 0.1, 0.2])
   axis.set_yticklabels([-0.2, None, 0, None, 0.2])
