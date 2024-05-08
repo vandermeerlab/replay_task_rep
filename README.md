@@ -1,2 +1,2 @@
 # replay_task_rep
-Project for investigating the role of replay in maintaining balanced and robust task representations
+Codebase for the paper: Paradoxical replay can protect contextual task representations from destructive interference when experience is unbalanced.
