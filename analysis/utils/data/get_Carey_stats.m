@@ -1,5 +1,8 @@
 rng('default');
 
+%%
+fd = sort(getTmazeDataPath([]));
+
 %% L vs R classification of run data (Figure S2b)
 % first, grab relevant fields from output structure
 cfg = []; cfg.sess = [2:6 10:11 13:24];
@@ -49,7 +52,7 @@ cfg.cutoff = 0.05; % percentile to include
 clear data;
 rats = {'all','R042','R044','R050','R064'};
 what = {'all','pre','task','post'};
-vars = {'fracL_all','fracR_all','fracL_evt','fracR_evt','median_z','median_perc', ...
+vars = {'fracL_evt','fracR_evt','median_z','median_perc', ...
     'this_sess','this_trials','this_choice','this_type'}; % type should be last
 for iR = 1:length(rats)
    for iW = 1:length(what)
@@ -191,6 +194,7 @@ for iR = 1:length(rats)
 end
 
 %% For splitting vs. replay bias
+cfg = []; cfg.sess = [2:6 10:11 13:24];
 for i = 1:length(cfg.sess)
     sess_i = cfg.sess(i);
     data.all.all.n_neurons(i) = out{sess_i}.n_neurons;
