@@ -1,4 +1,4 @@
-function fd = getAdrDataPath(cfg_in)
+function fd = getGuptaDataPath(cfg_in)
 % function fd = getTmazeDataPath(cfg_in)
 %
 % get list of folders with data to analyze

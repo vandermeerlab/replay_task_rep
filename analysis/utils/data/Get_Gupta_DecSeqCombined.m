@@ -34,6 +34,17 @@ cell_keep_idx = spk_count >= cfg.minSpikes;
 
 decS = SelectTS([], decS, cell_keep_idx);
 
+%% record relevant task info
+out.contigency = ExpKeys.maze;
+out.switch_time = metadata.SwitchTime;
+
+switch_indices = find(metadata.taskvars.trial_iv.tstart > out.switch_time);
+switch_idx = switch_indices(1);
+out.switch_idx = switch_idx;
+
+out.behav_sequence = metadata.taskvars.sequence;
+out.trial_iv = metadata.taskvars.trial_iv;
+out.TimeOffTrack = metadata.TimeOffTrack;
 %% now decode SWR vectors
 %
 cfg_shuf_LR.dt = 0.05; % this sets the binsize in decoding
@@ -68,7 +79,7 @@ P_SWR = DecodeZ(cfg_decode,Q_SWR,TC.combined.tc.tc); % full decoded probability 
 % obtain log odds
 div = ceil(size(TC.combined.tc.tc,2)/2); % divider between L & R tuning curves
 if cfg.postCPonly
-    this_cp = expCond(2).cp_bin;
+    this_cp = min(TC.left.cp_bin, TC.right.cp_bin);
     pL = nansum(P_SWR.data(this_cp+1:div-1,:)); pR = nansum(P_SWR.data(div+this_cp+1:end,:));
 else
     pL = nansum(P_SWR.data(1:div-1,:)); pR = nansum(P_SWR.data(div:end,:));
@@ -78,6 +89,7 @@ actual_diff = pL - pR;
 
 %%
 out.actual_pL = pL; out.actual_pR = pR;
+out.actual_odds = actual_odds; out.actual_diff = actual_diff;
 out.raw_tvec = Q_SWR.raw_tvec;
 
 %% L vs R shuffle
@@ -97,14 +109,14 @@ for iShuf = cfg_shuf_LR.nShuffles:-1:1
     this_tc(swap,1:div) = TC.combined.tc.tc(swap,div+1:end);
     this_tc(swap,div+1:end) = TC.combined.tc.tc(swap,1:div);
 
-    expComb.P_SWR = DecodeZ(cfg_decode,Q_SWR,this_tc); % full decoded probability distribution
+    sf_P_SWR = DecodeZ(cfg_decode,Q_SWR,this_tc); % full decoded probability distribution
 
     % obtain log odds
     div = ceil(size(TC.combined.tc.tc,2)/2); % divider between L & R tuning curves
     if cfg.postCPonly
-        pL = nansum(P_SWR.data(this_cp+1:div-1,:)); pR = nansum(P_SWR.data(div+this_cp+1:end,:));
+        pL = nansum(sf_P_SWR.data(this_cp+1:div-1,:)); pR = nansum(sf_P_SWR.data(div+this_cp+1:end,:));
     else
-        pL = nansum(P_SWR.data(1:div-1,:)); pR = nansum(P_SWR.data(div:end,:));
+        pL = nansum(sf_P_SWR.data(1:div-1,:)); pR = nansum(sf_P_SWR.data(div:end,:));
     end
     shuf_odds(iShuf,:) = log2(pL./pR);
     shuf_diff(iShuf,:) = pL - pR;
@@ -120,6 +132,5 @@ out.shuf_z_diff = (actual_diff-nanmean(shuf_diff))./nanstd(shuf_diff);
 out.shuf_z_diff(isnan(actual_diff)) = NaN;
 
 out.tvec = tvec_centers;
-out.behav_sequence = metadata.taskvars.sequence;
 % odds are left over right. So percentile = big means left, percentile =
 % small means right.
