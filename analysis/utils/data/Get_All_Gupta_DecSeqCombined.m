@@ -18,7 +18,7 @@ for p_i = 1:length(data_paths)
     TC = get_tuning_curve(cfg_tc, data_paths{p_i});
 
     cfg_decSeq = [];
-    cfg_decSeq.postCPonly = 0; % exclude central stem of T-maze up until the choice point?
+    cfg_decSeq.postCPonly = 1; % exclude central stem of T-maze up until the choice point?
     out{p_i} = Get_Gupta_DecSeqCombined(cfg_decSeq, TC);
 end
 
