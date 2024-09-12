@@ -7,6 +7,8 @@ cfg_def.removeInterneurons = 1;
 cfg_def.minSpikes = 25;
 cfg_def.nMinNeurons = 0;
 cfg_def.dt = 0.1;
+cfg_def.Qdt = cfg_def.dt/5;
+cfg_def.Qboxcar = 5;
 cfg_def.postCPonly = 0;
 
 cfg = ProcessConfig(cfg_def,cfg_in);
@@ -45,6 +47,87 @@ out.switch_idx = switch_idx;
 out.behav_sequence = metadata.taskvars.sequence;
 out.trial_iv = metadata.taskvars.trial_iv;
 out.TimeOffTrack = metadata.TimeOffTrack;
+
+%% Get firing rates for left and right trials before the choice points
+L_nums = length(metadata.taskvars.trial_iv_L.tstart);
+R_nums = length(metadata.taskvars.trial_iv_R.tstart);
+trial_nums = L_nums + R_nums;
+avg_FR_per_trial = zeros(length(TC.combined.S.t), trial_nums);
+
+all_TCs = {TC.left, TC.right};
+for iCond = 1:length(all_TCs)
+    cfg_pre_cp = []; cfg_pre_cp.method = 'raw'; cfg_pre_cp.operation = '<';
+    cfg_pre_cp.threshold = all_TCs{iCond}.cp.data;
+
+    pre_cp_iv = TSDtoIV(cfg_pre_cp, all_TCs{iCond}.linpos);
+    for t_i = 1:length(pre_cp_iv.tstart)
+        pre_cp_tstart = pre_cp_iv.tstart(t_i);
+        pre_cp_tend = pre_cp_iv.tend(t_i);
+        pre_cp_S = restrict(TC.combined.S, pre_cp_tstart, pre_cp_tend);
+        trial_i = (iCond - 1) * L_nums + t_i;
+        for n_i = 1:length(TC.combined.S.t)
+            avg_FR_per_trial(n_i, trial_i) = length(pre_cp_S.t{n_i}) / (pre_cp_tend - pre_cp_tstart);
+        end
+    end
+end
+
+% figure; imagesc(avg_FR_per_trial); colorbar;
+% xlabel('trial'); ylabel('neurons')
+
+L_FR = mean(avg_FR_per_trial(:, 1:L_nums), 2);
+R_FR = mean(avg_FR_per_trial(:, L_nums+1:end), 2);
+FR_diff = abs(L_FR - R_FR);
+out.FR_diff = FR_diff;
+% figure; imagesc([L_FR, R_FR, FR_diff]); colorbar;
+
+%% Q-mat
+cfg_Q = [];
+cfg_Q.dt = cfg.Qdt;
+cfg_Q.boxcar_size = cfg.Qboxcar;
+cfg_Q.smooth = [];
+
+Q = MakeQfromS(cfg_Q, decS);
+
+%% decode
+clear csc pos S;
+cfg_decode = [];
+cfg_decode.nMinSpikes = cfg.dt;
+cfg_decode.excludeMethod = 'frate';
+P = DecodeZ(cfg_decode,Q,TC.combined.tc.tc); % full decoded probability distribution
+
+%% quantify decoding accuracy on RUN
+this_trueZ = tsd(TC.combined.linpos.tvec,TC.combined.tc.usr.pos_idx); % true position in units of bins (as established by tuning curves)
+cfg_err = []; cfg_err.mode = 'max';
+
+keep_idx = unique(nearest_idx3(this_trueZ.tvec,P.tvec)); % match up decoding with true positions
+this_Pscore = P;
+this_Pscore.tvec = this_Pscore.tvec(keep_idx);
+this_Pscore.data = this_Pscore.data(:,keep_idx);
+[Perr, confMat] = DecodeErrorZ(cfg_err,this_Pscore,this_trueZ);
+
+%% compare quadrants
+cfy = @(x) x(:);
+this_mat = confMat.thr;
+
+keep = ~isnan(nansum(confMat.thr')); % find non-nan columns
+left_pts = [1 TC.left.cp_bin TC.combined.nBins/2]; np_l1 = sum(keep(left_pts(1):left_pts(2))); np_l2 = sum(keep(left_pts(2)+1:left_pts(3)));
+right_pts = [TC.combined.nBins/2+1 TC.combined.nBins/2+TC.right.cp_bin, TC.combined.nBins]; np_r1 = sum(keep(right_pts(1):right_pts(2))); np_r2 = sum(keep(right_pts(2)+1:right_pts(3)));
+
+out.left_preCP_correct = nansum(cfy(this_mat(left_pts(1):left_pts(2),left_pts(1):left_pts(2))))./np_l1;
+out.left_preCP_incorrect = nansum(cfy(this_mat(left_pts(1):left_pts(2),right_pts(1):right_pts(2))))./np_l1; % points classified as OPPOSITE trial equivalent
+out.right_preCP_correct = nansum(cfy(this_mat(right_pts(1):right_pts(2),right_pts(1):right_pts(2))))./np_r1;
+out.right_preCP_incorrect = nansum(cfy(this_mat(right_pts(1):right_pts(2),left_pts(1):left_pts(2))))./np_r1;
+fprintf('PreCP: left+ %.3f, left- %.3f, right+ %.3f, right- %.3f\n',out.left_preCP_correct,out.left_preCP_incorrect,out.right_preCP_correct,out.right_preCP_incorrect);
+
+out.left_postCP_correct = nansum(cfy(this_mat(left_pts(2)+1:left_pts(3),left_pts(2)+1:left_pts(3))))./np_l2;
+out.left_postCP_incorrect = nansum(cfy(this_mat(left_pts(2)+1:left_pts(3),right_pts(2)+1:right_pts(3))))./np_l2;
+out.right_postCP_correct = nansum(cfy(this_mat(right_pts(2)+1:right_pts(3),right_pts(2)+1:right_pts(3))))./np_r2;
+out.right_postCP_incorrect = nansum(cfy(this_mat(right_pts(2)+1:right_pts(3),left_pts(2)+1:left_pts(3))))./np_r2;
+fprintf('PostCP: left+ %.3f, left- %.3f, right+ %.3f, right- %.3f\n',out.left_postCP_correct,out.left_postCP_incorrect,out.right_postCP_correct,out.right_postCP_incorrect);
+
+out.left_chance_pre = np_l1./(np_l1+np_l2+np_r1+np_r2); out.left_chance_post = np_l2./(np_l1+np_l2+np_r1+np_r2); % analytical chance levels based on number of bins
+out.right_chance_pre = np_r1./(np_l1+np_l2+np_r1+np_r2); out.right_chance_post = np_r2./(np_l1+np_l2+np_r1+np_r2); % analytical chance levels based on number of bins
+
 %% now decode SWR vectors
 %
 cfg_shuf_LR.dt = 0.05; % this sets the binsize in decoding
