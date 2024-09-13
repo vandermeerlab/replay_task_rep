@@ -32,7 +32,7 @@ if isfield(ExpKeys,'FeederL1') % feeder IDs defined, use them
     feeders = cat(2, ExpKeys.FeederL1, ExpKeys.FeederR1);
     % Some oddity in Guptat dataset, Feeder labels are inversed.
     feeder_labels = {'R', 'L'};
-%     feeder_labels = {'L', 'R'};
+    % feeder_labels = {'L', 'R'};
     reward_t = [];
     ll = @(x) x(end); % function to get last character of input
     for iF = 1:length(feeders)
@@ -129,6 +129,7 @@ hold on;
 res_pos_R = restrict(pos, trial_iv_R); % restricted interval only
 plot(getd(res_pos_R,'x'),getd(res_pos_R,'y'),'b.', 'DisplayName','right');
 legend();
+view(rot_angle, rot_angle);
 
 %% should now be able to use GetMatchedTrials()
 metadata.taskvars.trial_iv = trial_iv;

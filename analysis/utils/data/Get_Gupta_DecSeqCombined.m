@@ -37,7 +37,7 @@ cell_keep_idx = spk_count >= cfg.minSpikes;
 decS = SelectTS([], decS, cell_keep_idx);
 
 %% record relevant task info
-out.contigency = ExpKeys.maze;
+out.contigency = metadata.taskvars.contingency;
 out.switch_time = metadata.SwitchTime;
 
 switch_indices = find(metadata.taskvars.trial_iv.tstart > out.switch_time);
@@ -45,6 +45,8 @@ switch_idx = switch_indices(1);
 out.switch_idx = switch_idx;
 
 out.behav_sequence = metadata.taskvars.sequence;
+out.trial_iv_L = metadata.taskvars.trial_iv_L;
+out.trial_iv_R = metadata.taskvars.trial_iv_R;
 out.trial_iv = metadata.taskvars.trial_iv;
 out.TimeOffTrack = metadata.TimeOffTrack;
 
