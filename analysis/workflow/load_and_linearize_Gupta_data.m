@@ -23,41 +23,64 @@ if isfield(ExpKeys,'TetrodeTargets')
     S = SelectTS([], S, keep_idx);
 end
 
-%% find left/right (rewarded) trial times
-%keep = ~cellfun('isempty',evt.label); evt = SelectTS([],evt,keep); % may fail with current codebase master, works with striatal-spike-rhythms repo
+% %% find left/right (rewarded) trial times
+% %keep = ~cellfun('isempty',evt.label); evt = SelectTS([],evt,keep); % may fail with current codebase master, works with striatal-spike-rhythms repo
+% 
+% min_trial_len = 1; % in seconds, used to remove multiple feeder fires
+% if isfield(ExpKeys,'FeederL1') % feeder IDs defined, use them
+% 
+%     feeders = cat(2, ExpKeys.FeederL1, ExpKeys.FeederR1);
+%     % Some oddity in Guptat dataset, Feeder labels are inversed.
+%     feeder_labels = {'R', 'L'};
+%     % feeder_labels = {'L', 'R'};
+%     reward_t = [];
+%     ll = @(x) x(end); % function to get last character of input
+%     for iF = 1:length(feeders)
+% 
+%         keep_idx = find(num2str(feeders(iF)) == cellfun(ll, evt.label));
+%         reward_t.(feeder_labels{iF}) = evt.t{keep_idx};
+% 
+%         % remove multiple feeder fires
+%         ifi = cat(2, Inf, diff(reward_t.(feeder_labels{iF})));
+%         reward_t.(feeder_labels{iF}) = reward_t.(feeder_labels{iF})(ifi >= min_trial_len);
+% 
+%     end
+% 
+% else
+%     error('no left/right feeder IDs defined');
+% end
 
-min_trial_len = 1; % in seconds, used to remove multiple feeder fires
-if isfield(ExpKeys,'FeederL1') % feeder IDs defined, use them
+% %% find the trial order to look like MotivationalT metadata
+% nL = length(reward_t.L); nR = length(reward_t.R);
+% left_labels = repmat({'L'}, [1 nL]); right_labels = repmat({'R'}, [1 nR]);
+% all_labels = cat(2, left_labels, right_labels);
+% all_times = cat(2, reward_t.L, reward_t.R);
+% 
+% [sorted_reward_times, sort_idx] = sort(all_times, 'ascend');
+% sequence = all_labels(sort_idx);
 
-    feeders = cat(2, ExpKeys.FeederL1, ExpKeys.FeederR1);
-    % Some oddity in Guptat dataset, Feeder labels are inversed.
-    feeder_labels = {'R', 'L'};
-    % feeder_labels = {'L', 'R'};
-    reward_t = [];
-    ll = @(x) x(end); % function to get last character of input
-    for iF = 1:length(feeders)
+% %% Extract left and right running trial starts
+% cfg_trial.mode = 'prev';
+% this_session = {};
+% this_session.reward_times = sorted_reward_times;
+% this_session.MS_exit = pos.tvec(diff_pos_trial == -1);
+% 
+% trial_starts = [];
+% 
+% for c_i = 1:length(this_session.reward_times)
+%     [pos_t,fieldname] = FindFieldTime(cfg_trial, this_session, this_session.reward_times(c_i));
+%     if ~isempty(fieldname) && ~strcmp(fieldname{1}, 'reward_times')
+%         if strcmp(fieldname{1}, 'MS_exit')
+%             trial_starts = [trial_starts, pos_t];
+%         end
+%     end
+% end
 
-        keep_idx = find(num2str(feeders(iF)) == cellfun(ll, evt.label));
-        reward_t.(feeder_labels{iF}) = evt.t{keep_idx};
-
-        % remove multiple feeder fires
-        ifi = cat(2, Inf, diff(reward_t.(feeder_labels{iF})));
-        reward_t.(feeder_labels{iF}) = reward_t.(feeder_labels{iF})(ifi >= min_trial_len);
-
-    end
-
-else
-    error('no left/right feeder IDs defined');
-end
-
-%% find the trial order to look like MotivationalT metadata
-nL = length(reward_t.L); nR = length(reward_t.R);
-left_labels = repmat({'L'}, [1 nL]); right_labels = repmat({'R'}, [1 nR]);
-all_labels = cat(2, left_labels, right_labels);
-all_times = cat(2, reward_t.L, reward_t.R);
-
-[sorted_reward_times, sort_idx] = sort(all_times, 'ascend');
-sequence = all_labels(sort_idx);
+% %% should now be able to use GetMatchedTrials()
+% metadata.taskvars.trial_iv = trial_iv;
+% metadata.taskvars.trial_iv_L = trial_iv_L;
+% metadata.taskvars.trial_iv_R = trial_iv_R;
+% metadata.taskvars.sequence = sequence;
 
 %% Plot some example trajectories
 pos = LoadPos([]);
@@ -97,23 +120,140 @@ scatter(pos_X(pos_trial == 1), pos_Y(pos_trial == 1)); hold on;
 %% Position of potential start events
 scatter(pos_X(diff_pos_trial == -1), pos_Y(diff_pos_trial == -1)); hold on;
 
-%% Extract left and right running trial starts
+%% Get Left reward zone (trial end) position
+% Label it in this order: top left -> bottom left -> bottom right -> top right
+[L_reward_X, L_reward_Y] = ginput(4);
+plot(L_reward_X, L_reward_Y); hold on;
+
+%%
+L_reward.x = [floor(min(L_reward_X(1:2))), ceil(max(L_reward_X(3:4)))];
+L_reward.y = [floor(min(L_reward_Y(2:3))), ceil(max(L_reward_Y([1, 4])))];
+
+%% Assign each position a label as 1 if in left reward zone
+% Then we can use the difference between location labels to potential trial starts.
+% For example, -1 would be exiting MS.
+L_reward_pos_trial = zeros(1, length(pos.data));
+for pos_i = 1:length(L_reward_pos_trial)
+    if (pos_X(pos_i) > L_reward.x(1) && pos_X(pos_i) < L_reward.x(2))...
+        && (pos_Y(pos_i) > L_reward.y(1) && pos_Y(pos_i) < L_reward.y(2))
+        L_reward_pos_trial(pos_i) = 1;
+    end
+end
+diff_L_reward_pos_trial = diff(L_reward_pos_trial);
+
+%% Locatons in the left reward zone
+scatter(pos_X(L_reward_pos_trial == 1), pos_Y(L_reward_pos_trial == 1)); hold on;
+
+%% Position of potential left end events
+scatter(pos_X(diff_L_reward_pos_trial == -1), pos_Y(diff_L_reward_pos_trial == -1)); hold on;
+
+%% Extract left trial starts
 cfg_trial.mode = 'prev';
 this_session = {};
-this_session.reward_times = sorted_reward_times;
+this_session.L_reward_exit = pos.tvec(diff_L_reward_pos_trial == -1);
 this_session.MS_exit = pos.tvec(diff_pos_trial == -1);
 
-trial_starts = [];
+L_trial_starts = [];
 
-for c_i = 1:length(this_session.reward_times)
-    [pos_t,fieldname] = FindFieldTime(cfg_trial, this_session, this_session.reward_times(c_i));
-    if ~isempty(fieldname) && ~strcmp(fieldname{1}, 'reward_times')
+for c_i = 1:length(this_session.L_reward_exit)
+    [pos_t,fieldname] = FindFieldTime(cfg_trial, this_session, this_session.L_reward_exit(c_i));
+    if ~isempty(fieldname) && ~strcmp(fieldname{1}, 'L_reward_exit')
         if strcmp(fieldname{1}, 'MS_exit')
-            trial_starts = [trial_starts, pos_t];
+            L_trial_starts = [L_trial_starts, pos_t];
         end
     end
 end
 
+%% Extract left trial ends
+cfg_trial.mode = 'next';
+this_session = {};
+this_session.L_trial_start = L_trial_starts;
+this_session.L_reward_exit = pos.tvec(diff_L_reward_pos_trial == -1);
+
+L_trial_ends = [];
+
+for c_i = 1:length(this_session.L_trial_start)
+    [pos_t,fieldname] = FindFieldTime(cfg_trial, this_session, this_session.L_trial_start(c_i));
+    if ~isempty(fieldname) && ~strcmp(fieldname{1}, 'L_trial_start')
+        if strcmp(fieldname{1}, 'L_reward_exit')
+            L_trial_ends = [L_trial_ends, pos_t];
+        end
+    end
+end
+
+%% Get Right reward zone (trial end) position
+% Label it in this order: top left -> bottom left -> bottom right -> top right
+[R_reward_X, R_reward_Y] = ginput(4);
+plot(R_reward_X, R_reward_Y); hold on;
+
+%%
+R_reward.x = [floor(min(R_reward_X(1:2))), ceil(max(R_reward_X(3:4)))];
+R_reward.y = [floor(min(R_reward_Y(2:3))), ceil(max(R_reward_Y([1, 4])))];
+
+%% Assign each position a label as 1 if in right reward zone
+% Then we can use the difference between location labels to potential trial starts.
+% For example, -1 would be exiting MS.
+R_reward_pos_trial = zeros(1, length(pos.data));
+for pos_i = 1:length(R_reward_pos_trial)
+    if (pos_X(pos_i) > R_reward.x(1) && pos_X(pos_i) < R_reward.x(2))...
+        && (pos_Y(pos_i) > R_reward.y(1) && pos_Y(pos_i) < R_reward.y(2))
+        R_reward_pos_trial(pos_i) = 1;
+    end
+end
+diff_R_reward_pos_trial = diff(R_reward_pos_trial);
+
+%% Locatons in the right reward zone
+scatter(pos_X(R_reward_pos_trial == 1), pos_Y(R_reward_pos_trial == 1)); hold on;
+
+%% Position of potential right end events
+scatter(pos_X(diff_R_reward_pos_trial == -1), pos_Y(diff_R_reward_pos_trial == -1)); hold on;
+
+%% Extract right trial starts
+cfg_trial.mode = 'prev';
+this_session = {};
+this_session.R_reward_exit = pos.tvec(diff_R_reward_pos_trial == -1);
+this_session.MS_exit = pos.tvec(diff_pos_trial == -1);
+
+R_trial_starts = [];
+
+for c_i = 1:length(this_session.R_reward_exit)
+    [pos_t,fieldname] = FindFieldTime(cfg_trial, this_session, this_session.R_reward_exit(c_i));
+    if ~isempty(fieldname) && ~strcmp(fieldname{1}, 'R_reward_exit')
+        if strcmp(fieldname{1}, 'MS_exit')
+            R_trial_starts = [R_trial_starts, pos_t];
+        end
+    end
+end
+
+%% Extract right trial ends
+cfg_trial.mode = 'next';
+this_session = {};
+this_session.R_trial_start = R_trial_starts;
+this_session.R_reward_exit = pos.tvec(diff_R_reward_pos_trial == -1);
+
+R_trial_ends = [];
+
+for c_i = 1:length(this_session.R_trial_start)
+    [pos_t,fieldname] = FindFieldTime(cfg_trial, this_session, this_session.R_trial_start(c_i));
+    if ~isempty(fieldname) && ~strcmp(fieldname{1}, 'R_trial_start')
+        if strcmp(fieldname{1}, 'R_reward_exit')
+            R_trial_ends = [R_trial_ends, pos_t];
+        end
+    end
+end
+
+%% find the trial order to look like MotivationalT metadata
+nL = length(L_trial_ends); nR = length(R_trial_ends);
+left_labels = repmat({'L'}, [1 nL]); right_labels = repmat({'R'}, [1 nR]);
+all_labels = cat(2, left_labels, right_labels);
+all_start_times = cat(2, L_trial_starts, R_trial_starts);
+all_reward_times = cat(2, L_trial_ends, R_trial_ends);
+
+[sorted_reward_times, sort_idx] = sort(all_reward_times, 'ascend');
+sequence = all_labels(sort_idx);
+trial_starts = all_start_times(sort_idx);
+
+%%
 L_idx = cellfun(@(x) strcmp(x, 'L'), sequence);
 R_idx = cellfun(@(x) strcmp(x, 'R'), sequence);
 
@@ -131,11 +271,16 @@ plot(getd(res_pos_R,'x'),getd(res_pos_R,'y'),'b.', 'DisplayName','right');
 legend();
 view(rot_angle, rot_angle);
 
+%%
+% Manually remove 8th right trial of R149\R149-2008-08-12
+% Manually remove 2nd and 4th left trial of R152\R149-2008-09-11
+
 %% should now be able to use GetMatchedTrials()
-metadata.taskvars.trial_iv = trial_iv;
-metadata.taskvars.trial_iv_L = trial_iv_L;
-metadata.taskvars.trial_iv_R = trial_iv_R;
-metadata.taskvars.sequence = sequence;
+metadata.taskvars_err.trial_iv = trial_iv;
+metadata.taskvars_err.trial_iv_L = trial_iv_L;
+metadata.taskvars_err.trial_iv_R = trial_iv_R;
+metadata.taskvars_err.sequence = sequence;
+metadata.taskvars_err.contingency = metadata.taskvars.contingency;
 
 %% Now get the conversion factors using the function PosCon()
 

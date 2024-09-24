@@ -44,10 +44,10 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
         tstart = [matched_left.tstart; matched_right.tstart];
         tend = [matched_left.tend; matched_right.tend];
     else
-        expCond(1).t = metadata.taskvars.trial_iv_L; % previously stored trial start and end times for left trials
-        expCond(2).t = metadata.taskvars.trial_iv_R;
-        tstart = metadata.taskvars.trial_iv.tstart;
-        tend = metadata.taskvars.trial_iv.tend;
+        expCond(1).t = metadata.taskvars_err.trial_iv_L; % previously stored trial start and end times for left trials
+        expCond(2).t = metadata.taskvars_err.trial_iv_R;
+        tstart = metadata.taskvars_err.trial_iv.tstart;
+        tend = metadata.taskvars_err.trial_iv.tend;
     end
 
     expCond(1).coord = metadata.coord.coordL; % previously user input idealized linear track
