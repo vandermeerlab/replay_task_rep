@@ -7,6 +7,7 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
     cfg_def.minSpikes = 25;
     cfg_def.trackExcludeStart = 0; % exclude this amount (in px) from start and end of track
     cfg_def.trackExcludeEnd = 25;
+    cfg_def.interval = [0, Inf];
 
     mfun = mfilename;
     cfg = ProcessConfig(cfg_def,cfg_in,mfun);
@@ -41,13 +42,9 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
         [matched_left, matched_right] = GetMatchedTrials({}, metadata, ExpKeys);
         expCond(1).t = matched_left;
         expCond(2).t = matched_right;
-        tstart = [matched_left.tstart; matched_right.tstart];
-        tend = [matched_left.tend; matched_right.tend];
     else
         expCond(1).t = metadata.taskvars.trial_iv_L; % previously stored trial start and end times for left trials
         expCond(2).t = metadata.taskvars.trial_iv_R;
-        tstart = metadata.taskvars.trial_iv.tstart;
-        tend = metadata.taskvars.trial_iv.tend;
     end
 
     expCond(1).coord = metadata.coord.coordL; % previously user input idealized linear track
@@ -58,6 +55,12 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
     spk_count = getSpikeCount([], S);
     cell_keep_idx = spk_count >= cfg.minSpikes;
     S = SelectTS([], S, cell_keep_idx);
+
+    % Restrict pos, S, expCond.t in the specified interval
+    pos = restrict(pos, cfg.interval);
+    S = restrict(S, cfg.interval);
+    expCond(1).t = restrict(expCond(1).t, cfg.interval);
+    expCond(2).t = restrict(expCond(2).t, cfg.interval);
 
     expCond(1).S = S;
     expCond(2).S = S;
