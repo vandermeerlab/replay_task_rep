@@ -78,7 +78,7 @@ for b_i = 1:2
     L_nums = length(trial_iv_L.tstart);
     R_nums = length(trial_iv_R.tstart);
     trial_nums = L_nums + R_nums;
-    avg_FR_per_trial = zeros(length(TC.combined.S.t), trial_nums);
+    avg_FR_per_trial = NaN(length(TC.combined.S.t), trial_nums);
     
     if b_i == 1
         all_TCs = {TC_1st.left, TC_1st.right};
@@ -97,7 +97,9 @@ for b_i = 1:2
             pre_cp_S = restrict(TC.combined.S, pre_cp_tstart, pre_cp_tend);
             trial_i = (iCond - 1) * L_nums + t_i;
             for n_i = 1:length(TC.combined.S.t)
-                avg_FR_per_trial(n_i, trial_i) = length(pre_cp_S.t{n_i}) / (pre_cp_tend - pre_cp_tstart);
+                if length(pre_cp_S.t{n_i}) > 0
+                    avg_FR_per_trial(n_i, trial_i) = length(pre_cp_S.t{n_i}) / (pre_cp_tend - pre_cp_tstart);
+                end
             end
         end
     end
@@ -105,8 +107,8 @@ for b_i = 1:2
     % figure; imagesc(avg_FR_per_trial); colorbar;
     % xlabel('trial'); ylabel('neurons')
     
-    L_FR = mean(avg_FR_per_trial(:, 1:L_nums), 2);
-    R_FR = mean(avg_FR_per_trial(:, L_nums+1:end), 2);
+    L_FR = mean(avg_FR_per_trial(:, 1:L_nums), 2, 'omitnan');
+    R_FR = mean(avg_FR_per_trial(:, L_nums+1:end), 2, 'omitnan');
     FR_diff = abs(L_FR - R_FR);
     out.FR_diff{b_i} = FR_diff;
     % figure; imagesc([L_FR, R_FR, FR_diff]); colorbar;
