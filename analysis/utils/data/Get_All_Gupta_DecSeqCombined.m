@@ -11,15 +11,10 @@ data_paths = getGuptaDataPath([]);
 %%
 for p_i = 1:length(data_paths)
     cd(data_paths{p_i});
-    cfg_tc = [];
-    cfg_tc.use_Gupta_data = 1;
-    cfg_tc.use_matched_trials = 0;
-    cfg_tc.removeInterneurons = 1;
-    TC = get_tuning_curve(cfg_tc, data_paths{p_i});
-
+    
     cfg_decSeq = [];
     cfg_decSeq.postCPonly = 1; % exclude central stem of T-maze up until the choice point?
-    out{p_i} = Get_Gupta_DecSeqCombined(cfg_decSeq, TC);
+    out{p_i} = Get_Gupta_DecSeqCombined(cfg_decSeq, data_paths{p_i});
 end
 
 disp(' ')

@@ -1,4 +1,4 @@
-function out = Get_Gupta_DecSeqCombined(cfg_in, TC)
+function out = Get_Gupta_DecSeqCombined(cfg_in, data_path)
 
 %% General configs
 cfg_def = [];
@@ -12,6 +12,7 @@ cfg_def.Qboxcar = 5;
 cfg_def.postCPonly = 0;
 
 cfg = ProcessConfig(cfg_def,cfg_in);
+    
 %% load spike data
 LoadMetadata;
 LoadExpKeys();
@@ -36,51 +37,80 @@ cell_keep_idx = spk_count >= cfg.minSpikes;
 
 decS = SelectTS([], decS, cell_keep_idx);
 
+%%
+cfg_tc = [];
+cfg_tc.use_Gupta_data = 1;
+cfg_tc.use_matched_trials = 0;
+cfg_tc.removeInterneurons = 1;
+cfg_tc.interval = [0, metadata.TimeOffTrack];
+TC = get_tuning_curve(cfg_tc, data_path);
+
+if metadata.SwitchTime > 0
+    cfg_tc.interval = [0, metadata.SwitchTime];
+end
+TC_1st = get_tuning_curve(cfg_tc, data_path);
+
+cfg_tc.interval = [metadata.SwitchTime, metadata.TimeOffTrack];
+TC_2nd = get_tuning_curve(cfg_tc, data_path);
 %% record relevant task info
-out.contigency = metadata.taskvars.contingency;
+out.contigency = metadata.taskvars_err.contingency;
 out.switch_time = metadata.SwitchTime;
 
-switch_indices = find(metadata.taskvars.trial_iv.tstart > out.switch_time);
+switch_indices = find(metadata.taskvars_err.trial_iv.tstart > out.switch_time);
 switch_idx = switch_indices(1);
 out.switch_idx = switch_idx;
 
-out.behav_sequence = metadata.taskvars.sequence;
-out.trial_iv_L = metadata.taskvars.trial_iv_L;
-out.trial_iv_R = metadata.taskvars.trial_iv_R;
-out.trial_iv = metadata.taskvars.trial_iv;
+out.behav_sequence = metadata.taskvars_err.sequence;
+out.trial_iv_L = metadata.taskvars_err.trial_iv_L;
+out.trial_iv_R = metadata.taskvars_err.trial_iv_R;
+out.trial_iv = metadata.taskvars_err.trial_iv;
 out.TimeOffTrack = metadata.TimeOffTrack;
 
 %% Get firing rates for left and right trials before the choice points
-L_nums = length(metadata.taskvars.trial_iv_L.tstart);
-R_nums = length(metadata.taskvars.trial_iv_R.tstart);
-trial_nums = L_nums + R_nums;
-avg_FR_per_trial = zeros(length(TC.combined.S.t), trial_nums);
-
-all_TCs = {TC.left, TC.right};
-for iCond = 1:length(all_TCs)
-    cfg_pre_cp = []; cfg_pre_cp.method = 'raw'; cfg_pre_cp.operation = '<';
-    cfg_pre_cp.threshold = all_TCs{iCond}.cp.data;
-
-    pre_cp_iv = TSDtoIV(cfg_pre_cp, all_TCs{iCond}.linpos);
-    for t_i = 1:length(pre_cp_iv.tstart)
-        pre_cp_tstart = pre_cp_iv.tstart(t_i);
-        pre_cp_tend = pre_cp_iv.tend(t_i);
-        pre_cp_S = restrict(TC.combined.S, pre_cp_tstart, pre_cp_tend);
-        trial_i = (iCond - 1) * L_nums + t_i;
-        for n_i = 1:length(TC.combined.S.t)
-            avg_FR_per_trial(n_i, trial_i) = length(pre_cp_S.t{n_i}) / (pre_cp_tend - pre_cp_tstart);
+for b_i = 1:2
+    if b_i == 1
+        trial_iv_L = restrict(metadata.taskvars_err.trial_iv_L, 0, metadata.SwitchTime);
+        trial_iv_R = restrict(metadata.taskvars_err.trial_iv_R, 0, metadata.SwitchTime);
+    else
+        trial_iv_L = restrict(metadata.taskvars_err.trial_iv_L, metadata.SwitchTime, metadata.TimeOffTrack);
+        trial_iv_R = restrict(metadata.taskvars_err.trial_iv_R, metadata.SwitchTime, metadata.TimeOffTrack);
+    end
+    L_nums = length(trial_iv_L.tstart);
+    R_nums = length(trial_iv_R.tstart);
+    trial_nums = L_nums + R_nums;
+    avg_FR_per_trial = zeros(length(TC.combined.S.t), trial_nums);
+    
+    if b_i == 1
+        all_TCs = {TC_1st.left, TC_1st.right};
+    else
+        all_TCs = {TC_2nd.left, TC_2nd.right};
+    end
+    
+    for iCond = 1:length(all_TCs)
+        cfg_pre_cp = []; cfg_pre_cp.method = 'raw'; cfg_pre_cp.operation = '<';
+        cfg_pre_cp.threshold = all_TCs{iCond}.cp.data;
+        
+        pre_cp_iv = TSDtoIV(cfg_pre_cp, all_TCs{iCond}.linpos);
+        for t_i = 1:length(pre_cp_iv.tstart)
+            pre_cp_tstart = pre_cp_iv.tstart(t_i);
+            pre_cp_tend = pre_cp_iv.tend(t_i);
+            pre_cp_S = restrict(TC.combined.S, pre_cp_tstart, pre_cp_tend);
+            trial_i = (iCond - 1) * L_nums + t_i;
+            for n_i = 1:length(TC.combined.S.t)
+                avg_FR_per_trial(n_i, trial_i) = length(pre_cp_S.t{n_i}) / (pre_cp_tend - pre_cp_tstart);
+            end
         end
     end
+    
+    % figure; imagesc(avg_FR_per_trial); colorbar;
+    % xlabel('trial'); ylabel('neurons')
+    
+    L_FR = mean(avg_FR_per_trial(:, 1:L_nums), 2);
+    R_FR = mean(avg_FR_per_trial(:, L_nums+1:end), 2);
+    FR_diff = abs(L_FR - R_FR);
+    out.FR_diff{b_i} = FR_diff;
+    % figure; imagesc([L_FR, R_FR, FR_diff]); colorbar;
 end
-
-% figure; imagesc(avg_FR_per_trial); colorbar;
-% xlabel('trial'); ylabel('neurons')
-
-L_FR = mean(avg_FR_per_trial(:, 1:L_nums), 2);
-R_FR = mean(avg_FR_per_trial(:, L_nums+1:end), 2);
-FR_diff = abs(L_FR - R_FR);
-out.FR_diff = FR_diff;
-% figure; imagesc([L_FR, R_FR, FR_diff]); colorbar;
 
 %% Q-mat
 cfg_Q = [];

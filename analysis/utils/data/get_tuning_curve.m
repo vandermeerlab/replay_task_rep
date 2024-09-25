@@ -43,8 +43,8 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
         expCond(1).t = matched_left;
         expCond(2).t = matched_right;
     else
-        expCond(1).t = metadata.taskvars.trial_iv_L; % previously stored trial start and end times for left trials
-        expCond(2).t = metadata.taskvars.trial_iv_R;
+        expCond(1).t = metadata.taskvars_err.trial_iv_L; % previously stored trial start and end times for left trials
+        expCond(2).t = metadata.taskvars_err.trial_iv_R;
     end
 
     expCond(1).coord = metadata.coord.coordL; % previously user input idealized linear track
@@ -57,10 +57,10 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
     S = SelectTS([], S, cell_keep_idx);
 
     % Restrict pos, S, expCond.t in the specified interval
-    pos = restrict(pos, cfg.interval);
-    S = restrict(S, cfg.interval);
-    expCond(1).t = restrict(expCond(1).t, cfg.interval);
-    expCond(2).t = restrict(expCond(2).t, cfg.interval);
+    pos = restrict(pos, cfg.interval(1), cfg.interval(2));
+    S = restrict(S, cfg.interval(1), cfg.interval(2));
+    expCond(1).t = restrict(expCond(1).t, cfg.interval(1), cfg.interval(2));
+    expCond(2).t = restrict(expCond(2).t, cfg.interval(1), cfg.interval(2));
 
     expCond(1).S = S;
     expCond(2).S = S;
