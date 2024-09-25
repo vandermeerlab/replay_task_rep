@@ -42,8 +42,8 @@ for s_i = 1:length(out)
                 end
                 for re_i = 1:length(trial_SWRs)
                     SWR_index = trial_SWRs(re_i);
-                   if out{s_i}.shuf_perc_odds(SWR_index) < sig_cutoff || ...
-                           out{s_i}.shuf_perc_odds(SWR_index) > 1-sig_cutoff
+                   if out{s_i}.shuf_perc_diff(SWR_index) < sig_cutoff || ...
+                           out{s_i}.shuf_perc_diff(SWR_index) > 1-sig_cutoff
 
                         if strcmp(out{s_i}.contigency{c_i}, 'Alt')
                             alt_total_count(s_i) = alt_total_count(s_i)+1;
@@ -62,7 +62,7 @@ for s_i = 1:length(out)
                         shuf_z = [shuf_z, out{s_i}.shuf_z_diff(SWR_index)];
 
 %                         if out{s_i}.actual_diff(SWR_index) > 0
-                        if out{s_i}.shuf_perc_odds(SWR_index) > 1-sig_cutoff
+                        if out{s_i}.shuf_perc_diff(SWR_index) > 1-sig_cutoff
                             % Left is more represented in this SWR
                             if strcmp(out{s_i}.behav_sequence{t_i}, 'R')
                                 if strcmp(out{s_i}.contigency{c_i}, 'Alt')
@@ -119,8 +119,8 @@ end
 
 %%
 types = {'Alt (sig.)', 'Left (sig.)', 'Right (sig.)'};
-% oppo_props = {alt_oppo_prop, L_oppo_prop, R_oppo_prop};
-oppo_props = {alt_shuf_z, L_shuf_z, R_shuf_z};
+oppo_props = {alt_oppo_prop, L_oppo_prop, R_oppo_prop};
+% oppo_props = {alt_shuf_z, L_shuf_z, R_shuf_z};
 mean_oppo_prop = zeros(length(oppo_props), 1);
 sem_oppo_prop = zeros(length(oppo_props), 1);
 
@@ -129,12 +129,12 @@ for d_i = 1:length(oppo_props)
     sem_oppo_prop(d_i) = nanstd(oppo_props{d_i}) / sqrt(sum(~isnan(oppo_props{d_i})));
 end
 
-ylim = [-1, 1];
+ylim = [0.3, 0.7];
 dx = 0.05;
 dy = 0.1;
 fs = 12;
-% y_label = 'proportion of opposite-side replay';
-y_label = 'z-scored replay bias';
+y_label = 'proportion of opposite-side replay';
+% y_label = 'z-scored replay bias';
 
 x = dx * (1:length(oppo_props));
 xpad = 0.05;
