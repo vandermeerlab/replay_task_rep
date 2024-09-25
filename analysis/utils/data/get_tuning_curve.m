@@ -38,15 +38,6 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
     expCond(1).label = 'left'; % this is a T-maze, we are interested in 'left' and 'right' trials
     expCond(2).label = 'right'; % these are just labels we can make up here to keep track of which condition means what
 
-    if cfg.use_matched_trials
-        [matched_left, matched_right] = GetMatchedTrials({}, metadata, ExpKeys);
-        expCond(1).t = matched_left;
-        expCond(2).t = matched_right;
-    else
-        expCond(1).t = metadata.taskvars_err.trial_iv_L; % previously stored trial start and end times for left trials
-        expCond(2).t = metadata.taskvars_err.trial_iv_R;
-    end
-
     expCond(1).coord = metadata.coord.coordL; % previously user input idealized linear track
     expCond(2).coord = metadata.coord.coordR; % note, this is in units of "camera pixels", not cm
 
@@ -59,8 +50,17 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
     % Restrict pos, S, expCond.t in the specified interval
     pos = restrict(pos, cfg.interval(1), cfg.interval(2));
     S = restrict(S, cfg.interval(1), cfg.interval(2));
-    expCond(1).t = restrict(expCond(1).t, cfg.interval(1), cfg.interval(2));
-    expCond(2).t = restrict(expCond(2).t, cfg.interval(1), cfg.interval(2));
+
+    if cfg.use_matched_trials
+        cfg_match = {};
+        cfg_match.interval = cfg.interval;
+        [matched_left, matched_right] = GetMatchedTrials(cfg_match, metadata.taskvars_err.sequence, metadata.taskvars_err.trial_iv);
+        expCond(1).t = matched_left;
+        expCond(2).t = matched_right;
+    else
+        expCond(1).t = restrict(metadata.taskvars_err.trial_iv_L, cfg.interval(1), cfg.interval(2));
+        expCond(2).t = restrict(metadata.taskvars_err.trial_iv_R, cfg.interval(1), cfg.interval(2));
+    end
 
     expCond(1).S = S;
     expCond(2).S = S;
