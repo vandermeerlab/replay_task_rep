@@ -35,13 +35,13 @@ for c_i = 1:2
 end
 
 %% Single-cell splitting
-FR_diff = cellfun(@(x) mean(x.left_preCP_correct, 'omitnan'), out);
+FR_diff = cellfun(@(x) mean(x.FR_diff, 'omitnan'), out);
 
 %% Splitting vs. replay bias
 avg_preCP_correct = (left_preCP_correct + right_preCP_correct) / 2;
 
-x = avg_preCP_correct(~isnan(oppo_replay_bias));
-y = oppo_replay_bias(~isnan(oppo_replay_bias));
+x = avg_preCP_correct;
+y = FR_diff;
 
 figure;
 p = polyfit(x, y, 1);

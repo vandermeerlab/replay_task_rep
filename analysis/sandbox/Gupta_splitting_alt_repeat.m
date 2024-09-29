@@ -107,7 +107,7 @@ R_ensemble_splitting = NaN(1, length(out));
 for s_i = 1:length(out)
     switch_idx = out{s_i}.switch_idx;
     for c_i = 1:length(out{s_i}.contigency)
-        avg_preCP_correct = (out{s_i}.left_preCP_correct{c_i} + out{s_i}.right_preCP_correct{c_i}) / 2;
+        avg_preCP_correct = max(out{s_i}.left_preCP_correct{c_i}, out{s_i}.right_preCP_correct{c_i});
         if c_i == 1
             block_num = length(out{s_i}.behav_sequence(1:switch_idx));
         else
@@ -141,7 +141,7 @@ for d_i = 1:length(ensemble_splitting)
     sem_splittng(d_i) = nanstd(ensemble_splitting{d_i}) / sqrt(sum(~isnan(ensemble_splitting{d_i})));
 end
 
-ylim = [0.5, 0.7];
+ylim = [0.5, 0.8];
 dx = 0.05;
 dy = 0.05;
 fs = 24;
@@ -159,3 +159,26 @@ set(gca, 'XTick', x, 'YTick', [ylim(1):dy:ylim(2)], 'XTickLabel', types, ...
 box off;
 plot([x(1)-xpad x(end)+xpad], [0 0], '--k', 'LineWidth', 1, 'Color', [0.7 0.7 0.7]);
 ylabel(y_label, 'Interpreter','latex');
+
+%%
+x = single_splitting{1};
+y = ensemble_splitting{1};
+
+x = x(~isnan(x));
+y = y(~isnan(y));
+
+figure;
+p = polyfit(x, y, 1);
+predicted_y = polyval(p, x);
+
+[corr, p_val] = corrcoef(x, y);
+scatter(x, y, 'filled', 'MarkerFaceColor', [105/255 105/255 105/255]);
+hold on;
+plot(x, predicted_y, '--', 'Color', [198/255 113/255 113/255], 'LineWidth', 2); 
+
+xlabel('single-cell splitter strength')
+ylabel('ensemble splitter strength')
+title(['r = ', num2str(corr(2, 1)), '; p-value = ', num2str(p_val(2, 1))])
+% title(['r = ', num2str(bias_corr(2, 1))])
+
+set(gca, 'FontSize', 24)
