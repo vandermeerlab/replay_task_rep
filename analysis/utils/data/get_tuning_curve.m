@@ -54,7 +54,7 @@ function [TC] = get_tuning_curve(cfg_in, session_path)
     if cfg.use_matched_trials
         cfg_match = {};
         cfg_match.interval = cfg.interval;
-        [matched_left, matched_right] = GetMatchedTrials(cfg_match, metadata.taskvars_err.sequence, metadata.taskvars_err.trial_iv);
+        [matched_left, matched_right] = GetGuptaMatchedTrials(cfg_match, metadata.taskvars_err.sequence, metadata.taskvars_err.trial_iv);
         expCond(1).t = matched_left;
         expCond(2).t = matched_right;
     else

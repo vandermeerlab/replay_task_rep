@@ -15,10 +15,10 @@ cfg = ProcessConfig(cfg_def,cfg_in,mfun);
 %%
 sequence_numbers = find(trial_iv.tstart > cfg.interval(1) & trial_iv.tstart < cfg.interval(2));
 sequence = sequence(sequence_numbers);
-trial_iv = restrict(trial_iv, cfg.interval(1), cfg.interval(2)));
+trial_iv = restrict(trial_iv, cfg.interval(1), cfg.interval(2));
 
-L_trial_numbers = find(strcmp('L',trial_iv));
-R_trial_numbers = find(strcmp('R',trial_iv));
+L_trial_numbers = find(strcmp('L',sequence));
+R_trial_numbers = find(strcmp('R',sequence));
 
 %% Return trial iv sets
 
@@ -29,8 +29,8 @@ nRtrials = length(R_trial_numbers);
 % choose which set to downsize
 if nLtrials == nRtrials
     if cfg.verbose; fprintf('%s: Equal good trials: nLtrials %d, nRTrials %d...\n',mfun,nLtrials,nRtrials); end
-    left = trial_iv(L_trial_numbers);
-    right = trial_iv(R_trial_numbers);
+    left = iv(trial_iv.tstart(L_trial_numbers), trial_iv.tend(L_trial_numbers));
+    right = iv(trial_iv.tstart(R_trial_numbers), trial_iv.tend(R_trial_numbers));
     left_indices = L_trial_numbers;
     right_indices = R_trial_numbers;
     return;
@@ -94,8 +94,8 @@ switch match
         left.tend = trial_iv.tend(matched_trial);
         left = iv(left.tstart,left.tend);
         
-        right.tstart = metadata.taskvars.trial_iv.tstart(R_trial_numbers);
-        right.tend = metadata.taskvars.trial_iv.tend(R_trial_numbers);
+        right.tstart = trial_iv.tstart(R_trial_numbers);
+        right.tend = trial_iv.tend(R_trial_numbers);
         right = iv(right.tstart,right.tend);
         
         left_indices = matched_trial;
